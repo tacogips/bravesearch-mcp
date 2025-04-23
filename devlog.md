@@ -10,7 +10,7 @@ To update this file:
 
 ## Project Overview
 
-The Brave Search MCP server provides a Model Context Protocol interface to the Brave Search API, allowing LLMs to perform web searches and local business searches through a standardized API.
+The Brave Search MCP server provides a Model Context Protocol interface to the Brave Search API, allowing LLMs to perform web searches, news searches, and local business searches through a standardized API.
 
 ## Architecture
 
@@ -46,6 +46,24 @@ Implementation uses a simple in-memory counter with Mutex for thread safety.
 
 ## Recent Changes
 
+### 2025-04-23: Added News Search API and Country/Language Support
+
+- Added News Search API integration with the Brave Search API
+- Implemented `brave_news_search` tool for searching news articles
+- Created CountryCode and LanguageCode enums to support all countries and languages
+- Added proper serialization/deserialization for country and language codes
+- Added documentation for all available country and language options
+- Updated tests to validate News Search API functionality
+- Modified `perform_news_search` method to accept country and language parameters
+- Updated spec.md with comprehensive documentation and API references
+
+The News Search API integration provides:
+1. Access to current news articles and breaking news
+2. Support for region-specific news through country codes
+3. Multi-language support through language codes
+4. Time-based filtering via the freshness parameter
+5. Complete documentation of all supported parameters
+
 ### 2025-04-23: API Key Handling Refactoring
 
 - Removed `with_api_key()` method from `BraveSearchRouter`
@@ -64,7 +82,12 @@ These changes simplify the code by:
 ## Roadmap
 
 Potential future enhancements:
-- Add support for more Brave Search API features
+- Add support for more Brave Search API features:
+  - Image search API integration
+  - Video search API integration
+  - Discussion search API integration
 - Implement caching to reduce API usage
 - Create a simple web UI for testing
 - Add more comprehensive error handling and retry logic
+- Add support for additional language and country combinations (market codes)
+- Implement advanced search parameters like safesearch and extra_snippets

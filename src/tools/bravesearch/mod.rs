@@ -14,6 +14,176 @@ use rmcp::{model::*, schemars, tool, ServerHandler};
 const RATE_LIMIT_PER_SECOND: usize = 1;
 const RATE_LIMIT_PER_MONTH: usize = 15000;
 
+// Country codes for Brave Search API
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum CountryCode {
+    ALL, AR, AU, AT, BE, BR, CA, CL, DK, FI, FR, DE, HK, IN, ID, IT, JP, 
+    KR, MY, MX, NL, NZ, NO, CN, PL, PT, PH, RU, SA, ZA, ES, SE, CH, TW, 
+    TR, GB, US,
+}
+
+impl Default for CountryCode {
+    fn default() -> Self {
+        CountryCode::US
+    }
+}
+
+impl fmt::Display for CountryCode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // Use Debug representation which outputs the enum variant name
+        let s = format!("{:?}", self).to_lowercase();
+        // Special case for ALL which should be lowercase
+        if s == "all" {
+            write!(f, "all")
+        } else {
+            write!(f, "{}", s)
+        }
+    }
+}
+
+impl FromStr for CountryCode {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_uppercase().as_str() {
+            "ALL" => Ok(CountryCode::ALL),
+            "AR" => Ok(CountryCode::AR),
+            "AU" => Ok(CountryCode::AU),
+            "AT" => Ok(CountryCode::AT),
+            "BE" => Ok(CountryCode::BE),
+            "BR" => Ok(CountryCode::BR),
+            "CA" => Ok(CountryCode::CA),
+            "CL" => Ok(CountryCode::CL),
+            "DK" => Ok(CountryCode::DK),
+            "FI" => Ok(CountryCode::FI),
+            "FR" => Ok(CountryCode::FR),
+            "DE" => Ok(CountryCode::DE),
+            "HK" => Ok(CountryCode::HK),
+            "IN" => Ok(CountryCode::IN),
+            "ID" => Ok(CountryCode::ID),
+            "IT" => Ok(CountryCode::IT),
+            "JP" => Ok(CountryCode::JP),
+            "KR" => Ok(CountryCode::KR),
+            "MY" => Ok(CountryCode::MY),
+            "MX" => Ok(CountryCode::MX),
+            "NL" => Ok(CountryCode::NL),
+            "NZ" => Ok(CountryCode::NZ),
+            "NO" => Ok(CountryCode::NO),
+            "CN" => Ok(CountryCode::CN),
+            "PL" => Ok(CountryCode::PL),
+            "PT" => Ok(CountryCode::PT),
+            "PH" => Ok(CountryCode::PH),
+            "RU" => Ok(CountryCode::RU),
+            "SA" => Ok(CountryCode::SA),
+            "ZA" => Ok(CountryCode::ZA),
+            "ES" => Ok(CountryCode::ES),
+            "SE" => Ok(CountryCode::SE),
+            "CH" => Ok(CountryCode::CH),
+            "TW" => Ok(CountryCode::TW),
+            "TR" => Ok(CountryCode::TR),
+            "GB" => Ok(CountryCode::GB),
+            "US" => Ok(CountryCode::US),
+            _ => Err(format!("Unknown country code: {}", s)),
+        }
+    }
+}
+
+// Language codes for Brave Search API
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum LanguageCode {
+    AR, EU, BN, BG, CA, ZH_HANS, ZH_HANT, HR, CS, DA, NL, EN, EN_GB, 
+    ET, FI, FR, GL, DE, GU, HE, HI, HU, IS, IT, JA, KN, KO, LV, LT, 
+    MS, ML, MR, NB, PL, PT, PT_BR, PA, RO, RU, SR, SK, SL, ES, SV, TA, 
+    TE, TH, TR, UK, VI,
+}
+
+impl Default for LanguageCode {
+    fn default() -> Self {
+        LanguageCode::EN
+    }
+}
+
+impl fmt::Display for LanguageCode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            LanguageCode::ZH_HANS => write!(f, "zh-hans"),
+            LanguageCode::ZH_HANT => write!(f, "zh-hant"),
+            LanguageCode::EN_GB => write!(f, "en-gb"),
+            LanguageCode::PT_BR => write!(f, "pt-br"),
+            _ => {
+                let s = format!("{:?}", self).to_lowercase();
+                write!(f, "{}", s)
+            }
+        }
+    }
+}
+
+impl FromStr for LanguageCode {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "ar" => Ok(LanguageCode::AR),
+            "eu" => Ok(LanguageCode::EU),
+            "bn" => Ok(LanguageCode::BN),
+            "bg" => Ok(LanguageCode::BG),
+            "ca" => Ok(LanguageCode::CA),
+            "zh-hans" => Ok(LanguageCode::ZH_HANS),
+            "zh_hans" => Ok(LanguageCode::ZH_HANS),
+            "zh-hant" => Ok(LanguageCode::ZH_HANT),
+            "zh_hant" => Ok(LanguageCode::ZH_HANT),
+            "hr" => Ok(LanguageCode::HR),
+            "cs" => Ok(LanguageCode::CS),
+            "da" => Ok(LanguageCode::DA),
+            "nl" => Ok(LanguageCode::NL),
+            "en" => Ok(LanguageCode::EN),
+            "en-gb" => Ok(LanguageCode::EN_GB),
+            "en_gb" => Ok(LanguageCode::EN_GB),
+            "et" => Ok(LanguageCode::ET),
+            "fi" => Ok(LanguageCode::FI),
+            "fr" => Ok(LanguageCode::FR),
+            "gl" => Ok(LanguageCode::GL),
+            "de" => Ok(LanguageCode::DE),
+            "gu" => Ok(LanguageCode::GU),
+            "he" => Ok(LanguageCode::HE),
+            "hi" => Ok(LanguageCode::HI),
+            "hu" => Ok(LanguageCode::HU),
+            "is" => Ok(LanguageCode::IS),
+            "it" => Ok(LanguageCode::IT),
+            "ja" => Ok(LanguageCode::JA),
+            "kn" => Ok(LanguageCode::KN),
+            "ko" => Ok(LanguageCode::KO),
+            "lv" => Ok(LanguageCode::LV),
+            "lt" => Ok(LanguageCode::LT),
+            "ms" => Ok(LanguageCode::MS),
+            "ml" => Ok(LanguageCode::ML),
+            "mr" => Ok(LanguageCode::MR),
+            "nb" => Ok(LanguageCode::NB),
+            "pl" => Ok(LanguageCode::PL),
+            "pt" => Ok(LanguageCode::PT),
+            "pt-br" => Ok(LanguageCode::PT_BR),
+            "pt_br" => Ok(LanguageCode::PT_BR),
+            "pa" => Ok(LanguageCode::PA),
+            "ro" => Ok(LanguageCode::RO),
+            "ru" => Ok(LanguageCode::RU),
+            "sr" => Ok(LanguageCode::SR),
+            "sk" => Ok(LanguageCode::SK),
+            "sl" => Ok(LanguageCode::SL),
+            "es" => Ok(LanguageCode::ES),
+            "sv" => Ok(LanguageCode::SV),
+            "ta" => Ok(LanguageCode::TA),
+            "te" => Ok(LanguageCode::TE),
+            "th" => Ok(LanguageCode::TH),
+            "tr" => Ok(LanguageCode::TR),
+            "uk" => Ok(LanguageCode::UK),
+            "vi" => Ok(LanguageCode::VI),
+            _ => Err(format!("Unknown language code: {}", s)),
+        }
+    }
+}
+
 // Rate limiter
 #[derive(Clone)]
 struct RateLimiter {
@@ -83,8 +253,9 @@ struct BraveSearchResponse {
     web: Option<BraveWebResults>,
     #[serde(default)]
     locations: Option<BraveLocationsResults>,
+    // News search API returns results directly at top level
     #[serde(default)]
-    news: Option<BraveNewsResults>,
+    results: Vec<BraveNewsResult>,
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -99,6 +270,7 @@ struct BraveLocationsResults {
     results: Vec<BraveLocationRef>,
 }
 
+// This is kept for backwards compatibility but not actually used anymore
 #[derive(Debug, Deserialize, Default)]
 struct BraveNewsResults {
     #[serde(default)]
@@ -243,16 +415,27 @@ impl BraveSearchRouter {
         }
     }
 
-    async fn perform_news_search(&self, query: &str, count: usize, offset: usize, freshness: Option<&str>) -> Result<String> {
+    async fn perform_news_search(
+        &self, 
+        query: &str, 
+        count: usize, 
+        offset: usize, 
+        country: Option<CountryCode>, 
+        search_lang: Option<LanguageCode>, 
+        freshness: Option<&str>
+    ) -> Result<String> {
         self.rate_limiter.check_rate_limit().await?;
 
         // Build URL with query parameters
+        let country_code = country.unwrap_or_default().to_string();
+        let language_code = search_lang.unwrap_or_default().to_string();
+        
         let mut params = vec![
             ("q", query.to_string()),
             ("count", count.to_string()),
             ("offset", offset.to_string()),
-            ("country", "us".to_string()),
-            ("search_lang", "en".to_string()),
+            ("country", country_code),
+            ("search_lang", language_code),
             ("spellcheck", "1".to_string()),
         ];
 
@@ -265,7 +448,7 @@ impl BraveSearchRouter {
             "https://api.search.brave.com/res/v1/news/search",
             &params,
         )?;
-
+        
         let response = self
             .client
             .get(url)
@@ -274,30 +457,36 @@ impl BraveSearchRouter {
             .header("X-Subscription-Token", &self.api_key)
             .send()
             .await?;
-
+            
         if !response.status().is_success() {
+            let status_code = response.status().as_u16();
+            let reason = response.status().canonical_reason().unwrap_or("");
+            let error_text = response.text().await?;
             return Err(anyhow!(
                 "Brave API error: {} {}\n{}",
-                response.status().as_u16(),
-                response.status().canonical_reason().unwrap_or(""),
-                response.text().await?
+                status_code,
+                reason,
+                error_text
             ));
         }
 
-        // With the gzip feature enabled, reqwest will automatically handle decompression
-        let data: BraveSearchResponse = response.json().await?;
+        // Get response body as text
+        let response_text = response.text().await?;
         
-        let news_results = match data.news {
-            Some(news) => news.results,
-            None => return Ok("No news results found".to_string()),
+        // Parse the JSON
+        let data = match serde_json::from_str::<BraveSearchResponse>(&response_text) {
+            Ok(parsed) => parsed,
+            Err(e) => {
+                return Ok(format!("Failed to parse API response: {}", e));
+            }
         };
         
-        if news_results.is_empty() {
-            return Ok("No news results found".to_string());
+        if data.results.is_empty() {
+            return Ok("No news results found (empty results array)".to_string());
         }
         
-        let results = news_results
-            .into_iter()
+        let results = data.results
+            .iter() // Use iter() instead of into_iter() for shared references
             .map(|result| {
                 let breaking = if result.breaking.unwrap_or(false) {
                     "[BREAKING] "
@@ -305,10 +494,10 @@ impl BraveSearchRouter {
                     ""
                 };
                 
-                let age = result.age.unwrap_or_else(|| "Unknown".to_string());
+                let age = result.age.as_deref().unwrap_or("Unknown");
                 
-                let thumbnail = match result.thumbnail {
-                    Some(thumb) => match thumb.src {
+                let thumbnail = match &result.thumbnail {
+                    Some(thumb) => match &thumb.src {
                         Some(src) => format!("\nThumbnail: {}", src),
                         None => "".to_string(),
                     },
@@ -657,14 +846,41 @@ impl BraveSearchRouter {
         offset: Option<usize>,
         
         #[tool(param)]
+        #[schemars(description = "Country code (ALL, AR, AU, AT, BE, BR, CA, CL, DK, FI, FR, DE, HK, IN, ID, IT, JP, KR, MY, MX, NL, NZ, NO, CN, PL, PT, PH, RU, SA, ZA, ES, SE, CH, TW, TR, GB, US; default US)")]
+        country: Option<String>,
+        
+        #[tool(param)]
+        #[schemars(description = "Search language (ar, eu, bn, bg, ca, zh-hans, zh-hant, hr, cs, da, nl, en, en-gb, et, fi, fr, gl, de, gu, he, hi, hu, is, it, ja, kn, ko, lv, lt, ms, ml, mr, nb, pl, pt, pt-br, pa, ro, ru, sr, sk, sl, es, sv, ta, te, th, tr, uk, vi; default en)")]
+        search_lang: Option<String>,
+        
+        #[tool(param)]
         #[schemars(description = "Timeframe filter (h for hour, d for day, w for week, m for month, y for year)")]
         freshness: Option<String>,
     ) -> String {
         let count = count.unwrap_or(20).min(50);
         let offset = offset.unwrap_or(0).min(9);
+        
+        // Parse country code if provided
+        let country_code = match country {
+            Some(c) => match CountryCode::from_str(&c) {
+                Ok(code) => Some(code),
+                Err(e) => return format!("Error parsing country code: {}", e),
+            },
+            None => None,
+        };
+        
+        // Parse language code if provided
+        let lang_code = match search_lang {
+            Some(l) => match LanguageCode::from_str(&l) {
+                Ok(code) => Some(code),
+                Err(e) => return format!("Error parsing language code: {}", e),
+            },
+            None => None,
+        };
+        
         let freshness_param = freshness.as_deref();
 
-        match self.perform_news_search(&query, count, offset, freshness_param).await {
+        match self.perform_news_search(&query, count, offset, country_code, lang_code, freshness_param).await {
             Ok(result) => result,
             Err(e) => format!("Error: {}", e),
         }
@@ -734,14 +950,22 @@ mod tests {
         assert!(!web_result.is_empty());
         assert!(web_result.contains("Rust"));
 
-        // Test 2: News Search
+        // Test 2: News Search with country and language
         let news_result = router
-            .brave_news_search("technology".to_string(), Some(3), None, Some("w".to_string()))
+            .brave_news_search(
+                "technology".to_string(), 
+                Some(3), 
+                None, 
+                Some("JP".to_string()), 
+                Some("en".to_string()), 
+                Some("w".to_string())
+            )
             .await;
             
-        println!("News search result: {}", news_result);
+        println!("News search result (JP, en): {}", news_result);
         assert!(!news_result.is_empty());
         assert!(news_result != "No news results found");
+        assert!(!news_result.starts_with("Error parsing"));
 
         // Test 3: Local Search
         let local_result = router
@@ -750,5 +974,46 @@ mod tests {
             
         println!("Local search result: {}", local_result);
         assert!(!local_result.is_empty());
+    }
+    
+    #[tokio::test]
+    async fn test_news_search_with_query() {
+        // Skip the test if API key is not set in environment
+        let api_key = std::env::var("BRAVE_API_KEY").unwrap_or_else(|_| {
+            eprintln!("BRAVE_API_KEY environment variable not set, skipping test");
+            String::from("dummy_key")
+        });
+
+        // Only run this test if we have a real API key
+        if api_key == "dummy_key" {
+            // Skip the test
+            return;
+        }
+
+        // Create a BraveSearchRouter with the API key
+        let router = BraveSearchRouter::new(api_key);
+
+        // Search for current news with US country code and English language
+        // Use "news" as a generic query that should always return results
+        let news_result = router
+            .brave_news_search(
+                "news".to_string(),
+                Some(3),
+                None,
+                Some("US".to_string()),
+                Some("en".to_string()),
+                None
+            )
+            .await;
+            
+        println!("News search result: {}", news_result);
+        
+        // Verify we got results
+        assert!(!news_result.is_empty());
+        assert!(news_result != "No news results found");
+        assert!(!news_result.starts_with("Error parsing"));
+        
+        // Print the API response details
+        println!("\nNews search API response received successfully!");
     }
 }
