@@ -18,13 +18,25 @@ use tokio::io::{self, AsyncBufReadExt, AsyncWriteExt, BufReader};
 // - Make tool calls
 
 // Simple example client for interacting with the server via stdin/stdout
-async fn stdio_client() -> Result<()> {
-    // Start the stdio-server in a separate process
-    let mut child = tokio::process::Command::new("cargo")
-        .args(["run", "--bin", "bravesearch-mcp", "stdio"])
-        .stdin(std::process::Stdio::piped())
-        .stdout(std::process::Stdio::piped())
-        .spawn()?;
+async fn stdio_client(api_key: Option<&str>) -> Result<()> {
+    // Prepare command to start the stdio-server
+    let mut cmd = tokio::process::Command::new("cargo");
+    cmd.args(["run", "--bin", "bravesearch-mcp"]);
+    
+    // Add API key if provided
+    if let Some(key) = api_key {
+        cmd.arg("--api-key").arg(key);
+    }
+    
+    // Add stdio subcommand
+    cmd.arg("stdio");
+    
+    // Setup pipes for communication
+    cmd.stdin(std::process::Stdio::piped())
+       .stdout(std::process::Stdio::piped());
+    
+    // Start the process
+    let mut child = cmd.spawn()?;
 
     let stdin = child.stdin.take().expect("Failed to open stdin");
     let stdout = child.stdout.take().expect("Failed to open stdout");
@@ -159,7 +171,7 @@ async fn stdio_client() -> Result<()> {
 }
 
 // Simple example client for interacting with the server via HTTP/SSE
-async fn sse_client() -> Result<()> {
+async fn sse_client(api_key: Option<&str>, port: u16) -> Result<()> {
     println!("Connecting to HTTP/SSE server...");
 
     // Create HTTP client with timeout
@@ -167,13 +179,24 @@ async fn sse_client() -> Result<()> {
         .timeout(std::time::Duration::from_secs(10))
         .build()?;
 
-    // Start our own server on port 3000
-    println!("Starting server on port 3000...");
-    let _server_handle = tokio::spawn(async {
-        match tokio::process::Command::new("cargo")
-            .args(["run", "--bin", "bravesearch-mcp", "sse", "--port", "3000"])
-            .spawn() 
-        {
+    // Prepare command to start the SSE server
+    let mut cmd = tokio::process::Command::new("cargo");
+    cmd.args(["run", "--bin", "bravesearch-mcp"]);
+    
+    // Add API key if provided
+    if let Some(key) = api_key {
+        cmd.arg("--api-key").arg(key);
+    }
+    
+    // Add sse subcommand with port
+    cmd.arg("sse")
+       .arg("--port")
+       .arg(port.to_string());
+    
+    // Start the server on the specified port
+    println!("Starting server on port {}...", port);
+    let _server_handle = tokio::spawn(async move {
+        match cmd.spawn() {
             Ok(mut child) => {
                 match child.wait().await {
                     Ok(status) => println!("Server process exited with: {}", status),
@@ -196,7 +219,7 @@ async fn sse_client() -> Result<()> {
     let session_id = format!("test_session_{}", rand_num);
     
     println!("Using session ID: {}", session_id);
-    let sse_url = format!("http://127.0.0.1:3000/sse?sessionId={}", session_id);
+    let sse_url = format!("http://127.0.0.1:{}/sse?sessionId={}", port, session_id);
 
     // First send initialize request
     let init_request = json!({
@@ -226,7 +249,7 @@ async fn sse_client() -> Result<()> {
             // Try to abort the server process to clean up
             tokio::spawn(async {
                 let _ = tokio::process::Command::new("pkill")
-                    .args(["-f", "bravesearch-mcp sse"])
+                    .args(["-f", &format!("bravesearch-mcp sse --port {}", port)])
                     .status()
                     .await;
             });
@@ -245,9 +268,9 @@ async fn sse_client() -> Result<()> {
     
     // Clean up server process
     println!("\nCleaning up server process...");
-    tokio::spawn(async {
+    tokio::spawn(async move {
         let _ = tokio::process::Command::new("pkill")
-            .args(["-f", "bravesearch-mcp sse"])
+            .args(["-f", &format!("bravesearch-mcp sse --port {}", port)])
             .status()
             .await;
     });
@@ -257,23 +280,28 @@ async fn sse_client() -> Result<()> {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    // Make sure BRAVE_API_KEY environment variable is set
-    if env::var("BRAVE_API_KEY").is_err() {
-        eprintln!("Error: BRAVE_API_KEY environment variable is required");
-        std::process::exit(1);
-    }
+    // Try to get API key from environment or let user know it's needed
+    let api_key = match env::var("BRAVE_API_KEY") {
+        Ok(key) => Some(key),
+        Err(_) => {
+            println!("Note: BRAVE_API_KEY environment variable is not set.");
+            println!("You can either set it or provide the API key via --api-key parameter to the server.");
+            None
+        }
+    };
 
     println!("Brave Search MCP Server Client Example");
     println!("--------------------------------------");
 
     // Run STDIO client test
     println!("\n1. Testing STDIN/STDOUT client:");
-    if let Err(e) = stdio_client().await {
+    if let Err(e) = stdio_client(api_key.as_deref()).await {
         println!("Error in STDIN/STDOUT client: {}", e);
     }
 
+    // Run SSE client test
     println!("\n2. Testing HTTP/SSE client:");
-    if let Err(e) = sse_client().await {
+    if let Err(e) = sse_client(api_key.as_deref(), 3000).await {
         println!("Error in HTTP/SSE client: {}", e);
     }
 

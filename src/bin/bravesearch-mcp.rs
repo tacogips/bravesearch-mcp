@@ -1,6 +1,6 @@
 use std::env;
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use bravesearch_mcp::tools::BraveSearchRouter;
 use bravesearch_mcp::transport::stdio;
 use clap::{Parser, Subcommand};
@@ -12,6 +12,10 @@ use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 #[command(name = "bravesearch-mcp")]
 #[command(about = "Brave Search MCP Server", long_about = None)]
 struct Cli {
+    /// Optional Brave API key, overrides BRAVE_API_KEY environment variable
+    #[arg(short, long, env = "BRAVE_API_KEY")]
+    api_key: Option<String>,
+
     #[command(subcommand)]
     command: Commands,
 }
@@ -28,13 +32,22 @@ enum Commands {
     },
 }
 
+fn get_api_key(cli_key: Option<String>) -> Result<String> {
+    match cli_key {
+        Some(key) => Ok(key),
+        None => env::var("BRAVE_API_KEY").map_err(|_| {
+            anyhow!("BRAVE_API_KEY environment variable is required when --api-key is not provided")
+        }),
+    }
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
-    // Check for API key
-    if env::var("BRAVE_API_KEY").is_err() {
-        eprintln!("Error: BRAVE_API_KEY environment variable is required");
-        std::process::exit(1);
-    }
+    // Parse command line arguments
+    let cli = Cli::parse();
+    
+    // Get API key
+    let api_key = get_api_key(cli.api_key)?;
 
     // Initialize tracing
     tracing_subscriber::registry()
@@ -44,18 +57,24 @@ async fn main() -> Result<()> {
 
     info!("Starting Brave Search MCP server");
 
-    let cli = Cli::parse();
-
     match cli.command {
         Commands::Stdio => {
             info!("Running in stdio mode");
-            stdio::run_stdio_server().await
+            
+            // Create the router with the API key
+            let service = BraveSearchRouter::with_api_key(api_key);
+            
+            // Serve the router over stdio
+            let server = service.serve(rmcp::transport::stdio()).await?;
+            server.waiting().await?;
+            
+            Ok(())
         }
         Commands::Sse { port } => {
             info!("Running in SSE mode on port {}", port);
             
-            // Create a service instance
-            let service = BraveSearchRouter::new();
+            // Create a service instance with the API key
+            let service = BraveSearchRouter::with_api_key(api_key);
             
             // Configure and start the server
             let server = bravesearch_mcp::transport::sse_server::serve(service, port).await?;

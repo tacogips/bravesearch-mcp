@@ -154,16 +154,22 @@ pub struct BraveSearchRouter {
 }
 
 impl BraveSearchRouter {
-    pub fn new() -> Self {
-        // Get API key from environment
-        let api_key = env::var("BRAVE_API_KEY")
-            .expect("BRAVE_API_KEY environment variable is required");
-        
+    /// Create a new BraveSearchRouter with an API key provided directly
+    pub fn with_api_key(api_key: String) -> Self {
         Self {
             client: Client::new(),
             rate_limiter: RateLimiter::new(),
             api_key,
         }
+    }
+
+    /// Create a new BraveSearchRouter from the BRAVE_API_KEY environment variable
+    pub fn new() -> Self {
+        // Get API key from environment
+        let api_key = env::var("BRAVE_API_KEY")
+            .expect("BRAVE_API_KEY environment variable is required");
+        
+        Self::with_api_key(api_key)
     }
 
     async fn perform_web_search(&self, query: &str, count: usize, offset: usize) -> Result<String> {

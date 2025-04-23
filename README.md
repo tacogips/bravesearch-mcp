@@ -21,21 +21,30 @@ cargo build --release
 
 ## Running the Server
 
-First, set your Brave API key as an environment variable:
+There are two ways to provide your Brave API key:
 
-```bash
-export BRAVE_API_KEY=your_api_key_here
-```
+1. Set it as an environment variable:
+   ```bash
+   export BRAVE_API_KEY=your_api_key_here
+   ```
 
-There are multiple ways to run the server:
+2. Provide it directly as a command-line argument:
+   ```bash
+   cargo run --bin bravesearch-mcp --api-key your_api_key_here stdio
+   ```
+
+Choose the mode that suits your needs:
 
 ### STDIN/STDOUT Mode
 
 This mode is useful when you want to pipe data directly to and from the server:
 
 ```bash
-# Run in STDIN/STDOUT mode
+# Run in STDIN/STDOUT mode with environment variable
 cargo run --bin bravesearch-mcp stdio
+
+# Run in STDIN/STDOUT mode with command-line API key
+cargo run --bin bravesearch-mcp --api-key your_api_key_here stdio
 ```
 
 ### HTTP/SSE Mode
@@ -48,6 +57,37 @@ cargo run --bin bravesearch-mcp sse
 
 # Run in HTTP/SSE mode with custom port
 cargo run --bin bravesearch-mcp sse --port 8080
+
+# Run in HTTP/SSE mode with command-line API key
+cargo run --bin bravesearch-mcp --api-key your_api_key_here sse
+```
+
+## Command-Line Options
+
+The server supports the following command-line options:
+
+```
+USAGE:
+    bravesearch-mcp [OPTIONS] <SUBCOMMAND>
+
+OPTIONS:
+    -a, --api-key <API_KEY>    Optional Brave API key, overrides BRAVE_API_KEY environment variable
+    -h, --help                 Print help information
+
+SUBCOMMANDS:
+    help     Print this message or the help of the given subcommand(s)
+    sse      Run the Brave Search MCP server over SSE
+    stdio    Run the Brave Search MCP server over stdio
+```
+
+For the `sse` subcommand, you can also specify the port:
+
+```
+USAGE:
+    bravesearch-mcp sse [OPTIONS]
+
+OPTIONS:
+    -p, --port <PORT>    Port to use for SSE server [default: 3000]
 ```
 
 ## Using the Example Client
@@ -55,11 +95,11 @@ cargo run --bin bravesearch-mcp sse --port 8080
 An example client is included to demonstrate how to interact with the server:
 
 ```bash
-# Set your API key
-export BRAVE_API_KEY=your_api_key_here
-
-# Run the example client
+# If you've set the BRAVE_API_KEY environment variable:
 cargo run --example client
+
+# Or, set it when running the example:
+BRAVE_API_KEY=your_api_key_here cargo run --example client
 ```
 
 The example client demonstrates:
