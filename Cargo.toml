@@ -21,7 +21,7 @@ rmcp = { version = "0.1", features = [
 # MCP dependencies from GitHub
 # HTTP and networking
 tokio = { version = "1", features = ["full"] }
-reqwest = { version = "0.11", features = ["json"] }
+reqwest = { version = "0.11", features = ["gzip", "json"] }
 axum = { version = "0.8", features = ["macros"] }
 tokio-util = { version = "0.7", features = ["io", "codec"] }
 tower = { version = "0.4", features = ["util"] }
@@ -44,6 +44,7 @@ rand = "0.8"
 clap = { version = "4.5", features = ["derive", "env"] }
 html2md = "0.2.14"
 temp-dir = { git = "https://gitlab.com/leonhard-llc/ops.git", branch = "main" }
+tokio-test = "0.4.4"
 
 [dev-dependencies]
 # Testing utilities

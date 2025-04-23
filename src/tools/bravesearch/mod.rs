@@ -48,19 +48,19 @@ impl RateLimiter {
     async fn check_rate_limit(&self) -> Result<()> {
         let mut req_count = self.request_count.lock().await;
         let now = Instant::now();
-        
+
         if now.duration_since(req_count.last_reset) > Duration::from_secs(1) {
             req_count.second = 0;
             req_count.last_reset = now;
         }
-        
+
         if req_count.second >= RATE_LIMIT_PER_SECOND || req_count.month >= RATE_LIMIT_PER_MONTH {
             return Err(anyhow!("Rate limit exceeded"));
         }
-        
+
         req_count.second += 1;
         req_count.month += 1;
-        
+
         Ok(())
     }
 }
@@ -164,6 +164,9 @@ pub struct BraveSearchRouter {
 impl BraveSearchRouter {
     /// Create a new BraveSearchRouter with the required API key
     pub fn new(api_key: String) -> Self {
+        // Create a client with default settings
+        // The reqwest client automatically handles gzip responses by default
+        // as long as the appropriate feature is enabled in Cargo.toml
         Self {
             client: Client::new(),
             rate_limiter: RateLimiter::new(),
@@ -173,7 +176,7 @@ impl BraveSearchRouter {
 
     async fn perform_web_search(&self, query: &str, count: usize, offset: usize) -> Result<String> {
         self.rate_limiter.check_rate_limit().await?;
-        
+
         let url = reqwest::Url::parse_with_params(
             "https://api.search.brave.com/res/v1/web/search",
             &[
@@ -183,7 +186,8 @@ impl BraveSearchRouter {
             ],
         )?;
 
-        let response = self.client
+        let response = self
+            .client
             .get(url)
             .header("Accept", "application/json")
             .header("Accept-Encoding", "gzip")
@@ -193,24 +197,24 @@ impl BraveSearchRouter {
 
         if !response.status().is_success() {
             return Err(anyhow!(
-                "Brave API error: {} {}\n{}", 
+                "Brave API error: {} {}\n{}",
                 response.status().as_u16(),
                 response.status().canonical_reason().unwrap_or(""),
                 response.text().await?
             ));
         }
 
+        // With the gzip feature enabled, reqwest will automatically handle decompression
         let data: BraveWeb = response.json().await?;
-        let results = data.web
+        let results = data
+            .web
             .unwrap_or_default()
             .results
             .into_iter()
             .map(|result| {
                 format!(
                     "Title: {}\nDescription: {}\nURL: {}",
-                    result.title,
-                    result.description,
-                    result.url
+                    result.title, result.description, result.url
                 )
             })
             .collect::<Vec<_>>()
@@ -221,7 +225,7 @@ impl BraveSearchRouter {
 
     async fn perform_local_search(&self, query: &str, count: usize) -> Result<String> {
         self.rate_limiter.check_rate_limit().await?;
-        
+
         let url = reqwest::Url::parse_with_params(
             "https://api.search.brave.com/res/v1/web/search",
             &[
@@ -232,7 +236,8 @@ impl BraveSearchRouter {
             ],
         )?;
 
-        let response = self.client
+        let response = self
+            .client
             .get(url)
             .header("Accept", "application/json")
             .header("Accept-Encoding", "gzip")
@@ -242,44 +247,47 @@ impl BraveSearchRouter {
 
         if !response.status().is_success() {
             return Err(anyhow!(
-                "Brave API error: {} {}\n{}", 
+                "Brave API error: {} {}\n{}",
                 response.status().as_u16(),
                 response.status().canonical_reason().unwrap_or(""),
                 response.text().await?
             ));
         }
+        let a = response.text().await;
+        println!("{:?}", a);
+        unimplemented!()
+        //let web_data: BraveWeb = response.json().await?;
+        //let location_ids: Vec<String> = web_data
+        //    .locations
+        //    .unwrap_or_default()
+        //    .results
+        //    .into_iter()
+        //    .map(|loc| loc.id)
+        //    .collect();
 
-        let web_data: BraveWeb = response.json().await?;
-        let location_ids: Vec<String> = web_data
-            .locations
-            .unwrap_or_default()
-            .results
-            .into_iter()
-            .map(|loc| loc.id)
-            .collect();
+        //if location_ids.is_empty() {
+        //    // Fall back to web search if no local results
+        //    return self.perform_web_search(query, count, 0).await;
+        //}
 
-        if location_ids.is_empty() {
-            // Fall back to web search if no local results
-            return self.perform_web_search(query, count, 0).await;
-        }
+        //let pois_data = self.get_pois_data(&location_ids).await?;
+        //let desc_data = self.get_descriptions_data(&location_ids).await?;
 
-        let pois_data = self.get_pois_data(&location_ids).await?;
-        let desc_data = self.get_descriptions_data(&location_ids).await?;
-
-        Ok(self.format_local_results(pois_data, desc_data))
+        //Ok(self.format_local_results(pois_data, desc_data))
     }
 
     async fn get_pois_data(&self, ids: &[String]) -> Result<BravePoiResponse> {
         self.rate_limiter.check_rate_limit().await?;
-        
+
         let mut url = reqwest::Url::parse("https://api.search.brave.com/res/v1/local/pois")?;
-        
+
         // Add all IDs as query parameters
         for id in ids {
             url.query_pairs_mut().append_pair("ids", id);
         }
 
-        let response = self.client
+        let response = self
+            .client
             .get(url)
             .header("Accept", "application/json")
             .header("Accept-Encoding", "gzip")
@@ -289,7 +297,7 @@ impl BraveSearchRouter {
 
         if !response.status().is_success() {
             return Err(anyhow!(
-                "Brave API error: {} {}\n{}", 
+                "Brave API error: {} {}\n{}",
                 response.status().as_u16(),
                 response.status().canonical_reason().unwrap_or(""),
                 response.text().await?
@@ -302,15 +310,17 @@ impl BraveSearchRouter {
 
     async fn get_descriptions_data(&self, ids: &[String]) -> Result<BraveDescription> {
         self.rate_limiter.check_rate_limit().await?;
-        
-        let mut url = reqwest::Url::parse("https://api.search.brave.com/res/v1/local/descriptions")?;
-        
+
+        let mut url =
+            reqwest::Url::parse("https://api.search.brave.com/res/v1/local/descriptions")?;
+
         // Add all IDs as query parameters
         for id in ids {
             url.query_pairs_mut().append_pair("ids", id);
         }
 
-        let response = self.client
+        let response = self
+            .client
             .get(url)
             .header("Accept", "application/json")
             .header("Accept-Encoding", "gzip")
@@ -320,7 +330,7 @@ impl BraveSearchRouter {
 
         if !response.status().is_success() {
             return Err(anyhow!(
-                "Brave API error: {} {}\n{}", 
+                "Brave API error: {} {}\n{}",
                 response.status().as_u16(),
                 response.status().canonical_reason().unwrap_or(""),
                 response.text().await?
@@ -331,7 +341,11 @@ impl BraveSearchRouter {
         Ok(descriptions_data)
     }
 
-    fn format_local_results(&self, pois_data: BravePoiResponse, desc_data: BraveDescription) -> String {
+    fn format_local_results(
+        &self,
+        pois_data: BravePoiResponse,
+        desc_data: BraveDescription,
+    ) -> String {
         let results = pois_data.results.into_iter().map(|poi| {
             let address = [
                 poi.address.street_address.unwrap_or_default(),
@@ -345,18 +359,18 @@ impl BraveSearchRouter {
             .join(", ");
 
             let address_display = if address.is_empty() { "N/A" } else { &address };
-            
+
             let rating = poi.rating.as_ref().and_then(|r| r.rating_value)
                 .map(|val| val.to_string())
                 .unwrap_or_else(|| "N/A".to_string());
-            
+
             let rating_count = poi.rating.as_ref().and_then(|r| r.rating_count)
                 .map(|val| val.to_string())
                 .unwrap_or_else(|| "0".to_string());
-            
+
             let hours = poi.opening_hours.unwrap_or_default().join(", ");
             let hours_display = if hours.is_empty() { "N/A" } else { &hours };
-            
+
             let description = desc_data.descriptions.get(&poi.id)
                 .cloned()
                 .unwrap_or_else(|| "No description available".to_string());
@@ -386,7 +400,9 @@ impl BraveSearchRouter {
 
 #[tool(tool_box)]
 impl BraveSearchRouter {
-    #[tool(description = "Performs a web search using the Brave Search API, ideal for general queries, news, articles, and online content.")]
+    #[tool(
+        description = "Performs a web search using the Brave Search API, ideal for general queries, news, articles, and online content."
+    )]
     async fn brave_web_search(
         &self,
         #[tool(param)]
@@ -410,7 +426,9 @@ impl BraveSearchRouter {
         }
     }
 
-    #[tool(description = "Searches for local businesses and places using Brave's Local Search API.")]
+    #[tool(
+        description = "Searches for local businesses and places using Brave's Local Search API."
+    )]
     async fn brave_local_search(
         &self,
         #[tool(param)]
@@ -437,9 +455,41 @@ impl ServerHandler for BraveSearchRouter {
             protocol_version: ProtocolVersion::V_2024_11_05,
             capabilities: ServerCapabilities::builder().enable_tools().build(),
             server_info: Implementation::from_build_env(),
-            instructions: Some(
-                "Brave Search MCP Server for web and local search.".to_string(),
-            ),
+            instructions: Some("Brave Search MCP Server for web and local search.".to_string()),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_brave_web_search() {
+        // Skip the test if API key is not set in environment
+        let api_key = std::env::var("BRAVE_API_KEY").unwrap_or_else(|_| {
+            eprintln!("BRAVE_API_KEY environment variable not set, skipping test");
+            String::from("dummy_key")
+        });
+        // Create a BraveSearchRouter with a test API key
+        let router = BraveSearchRouter::new(api_key);
+
+        // Mock the client response if needed, or use a real API key for integration testing
+
+        // Perform a search
+        let result = router
+            .brave_local_search("Rust programming language".to_string(), None)
+            .await;
+
+        // Print the result for debugging
+        println!("Search result: {}", result);
+
+        assert!(false);
+        // Add assertions based on expected behavior
+        // For example, if using a mock, assert the output matches expected mock response
+        // If using real API, assert that the response contains expected elements
+
+        // Example assertion (will need adjustment based on actual implementation)
+        // assert!(result.contains("Rust programming language"));
     }
 }
