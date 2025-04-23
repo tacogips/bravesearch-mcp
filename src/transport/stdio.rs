@@ -10,6 +10,8 @@ pub async fn run_stdio_server(api_key: String) -> Result<()> {
     // Use the rust-sdk stdio transport implementation
     let server = service.serve(stdio()).await?;
 
+    // Wait for the server to complete
     server.waiting().await?;
+    
     Ok(())
 }

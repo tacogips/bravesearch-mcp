@@ -15,10 +15,11 @@ where
     let handle = tokio::spawn(async move {
         // Wait for Ctrl+C signal to gracefully shutdown
         if let Err(e) = tokio::signal::ctrl_c().await {
-            eprintln!("Failed to listen for ctrl+c: {}", e);
+            tracing::error!("Failed to listen for ctrl+c: {}", e);
         }
         
         // Cancel the server
+        tracing::info!("Shutting down server...");
         cancellation_token.cancel();
         
         Ok(())
