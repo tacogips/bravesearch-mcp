@@ -13,36 +13,6 @@ use rmcp::{model::*, schemars, tool, ServerHandler};
 const RATE_LIMIT_PER_SECOND: usize = 1;
 const RATE_LIMIT_PER_MONTH: usize = 15000;
 
-// Cache for documentation lookups to avoid repeated requests
-#[derive(Clone)]
-pub struct DocCache {
-    cache: Arc<Mutex<std::collections::HashMap<String, String>>>,
-}
-
-impl Default for DocCache {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl DocCache {
-    pub fn new() -> Self {
-        Self {
-            cache: Arc::new(Mutex::new(std::collections::HashMap::new())),
-        }
-    }
-
-    pub async fn get(&self, key: &str) -> Option<String> {
-        let cache = self.cache.lock().await;
-        cache.get(key).cloned()
-    }
-
-    pub async fn set(&self, key: String, value: String) {
-        let mut cache = self.cache.lock().await;
-        cache.insert(key, value);
-    }
-}
-
 // Rate limiter
 #[derive(Clone)]
 struct RateLimiter {
@@ -177,14 +147,13 @@ struct BraveDescription {
 }
 
 #[derive(Clone)]
-pub struct CargoDocRouter {
+pub struct BraveSearchRouter {
     pub client: Client,
-    pub cache: DocCache,
     rate_limiter: RateLimiter,
     api_key: String,
 }
 
-impl CargoDocRouter {
+impl BraveSearchRouter {
     pub fn new() -> Self {
         // Get API key from environment
         let api_key = env::var("BRAVE_API_KEY")
@@ -192,7 +161,6 @@ impl CargoDocRouter {
         
         Self {
             client: Client::new(),
-            cache: DocCache::new(),
             rate_limiter: RateLimiter::new(),
             api_key,
         }
@@ -412,72 +380,7 @@ impl CargoDocRouter {
 }
 
 #[tool(tool_box)]
-impl CargoDocRouter {
-    #[tool(description = "Look up documentation for a Rust crate (returns markdown)")]
-    async fn lookup_crate(
-        &self,
-        #[tool(param)]
-        #[schemars(description = "The name of the crate to look up")]
-        crate_name: String,
-
-        #[tool(param)]
-        #[schemars(description = "The version of the crate (optional, defaults to latest)")]
-        version: Option<String>,
-    ) -> String {
-        // Check cache first
-        let cache_key = if let Some(ver) = &version {
-            format!("{}:{}", crate_name, ver)
-        } else {
-            crate_name.clone()
-        };
-
-        if let Some(doc) = self.cache.get(&cache_key).await {
-            return doc;
-        }
-
-        // Construct the docs.rs URL for the crate
-        let url = if let Some(ver) = version {
-            format!("https://docs.rs/crate/{}/{}/", crate_name, ver)
-        } else {
-            format!("https://docs.rs/crate/{}/", crate_name)
-        };
-
-        // Fetch the documentation page
-        let response = match self
-            .client
-            .get(&url)
-            .header(
-                "User-Agent",
-                "CrateDocs/0.1.0 (https://github.com/d6e/bravesearch-mcp)",
-            )
-            .send()
-            .await
-        {
-            Ok(resp) => resp,
-            Err(e) => return format!("Failed to fetch documentation: {}", e),
-        };
-
-        if !response.status().is_success() {
-            return format!(
-                "Failed to fetch documentation. Status: {}",
-                response.status()
-            );
-        }
-
-        let html_body = match response.text().await {
-            Ok(body) => body,
-            Err(e) => return format!("Failed to read response body: {}", e),
-        };
-
-        // Convert HTML to markdown
-        let markdown_body = html2md::parse_html(&html_body);
-
-        // Cache the markdown result
-        self.cache.set(cache_key, markdown_body.clone()).await;
-
-        markdown_body
-    }
-
+impl BraveSearchRouter {
     #[tool(description = "Performs a web search using the Brave Search API, ideal for general queries, news, articles, and online content.")]
     async fn brave_web_search(
         &self,
@@ -517,7 +420,7 @@ impl CargoDocRouter {
 }
 
 #[tool(tool_box)]
-impl ServerHandler for CargoDocRouter {
+impl ServerHandler for BraveSearchRouter {
     fn get_info(&self) -> ServerInfo {
         ServerInfo {
             protocol_version: ProtocolVersion::V_2024_11_05,

@@ -1,4 +1,3 @@
-use crate::tools::bravesearch::CargoDocRouter;
 use anyhow::Result;
 use rmcp::{Service, transport::sse_server::SseServer};
 use std::net::SocketAddr;

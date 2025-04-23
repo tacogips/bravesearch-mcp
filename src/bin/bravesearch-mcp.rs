@@ -1,7 +1,7 @@
 use std::env;
 
 use anyhow::Result;
-use bravesearch_mcp::tools::bravesearch::CargoDocRouter;
+use bravesearch_mcp::tools::BraveSearchRouter;
 use bravesearch_mcp::transport::stdio;
 use clap::{Parser, Subcommand};
 use rmcp::ServiceExt;
@@ -55,7 +55,7 @@ async fn main() -> Result<()> {
             info!("Running in SSE mode on port {}", port);
             
             // Create a service instance
-            let service = CargoDocRouter::new();
+            let service = BraveSearchRouter::new();
             
             // Configure and start the server
             let server = bravesearch_mcp::transport::sse_server::serve(service, port).await?;
