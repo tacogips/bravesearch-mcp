@@ -74,7 +74,9 @@ struct BraveWebResult {
 }
 
 #[derive(Debug, Deserialize)]
-struct BraveWeb {
+struct BraveSearchResponse {
+    #[serde(rename = "type")]
+    response_type: String,
     #[serde(default)]
     web: Option<BraveWebResults>,
     #[serde(default)]
@@ -96,8 +98,14 @@ struct BraveLocationsResults {
 #[derive(Debug, Deserialize)]
 struct BraveLocationRef {
     id: String,
+    #[serde(rename = "type")]
+    location_type: Option<String>,
     #[serde(default)]
     title: Option<String>,
+    #[serde(default)]
+    coordinates: Option<Vec<f64>>,
+    #[serde(default)]
+    postal_address: Option<BravePostalAddress>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -133,6 +141,20 @@ struct BraveAddress {
     address_region: Option<String>,
     #[serde(default)]
     postal_code: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Default)]
+struct BravePostalAddress {
+    #[serde(default)]
+    country: Option<String>,
+    #[serde(default, rename = "postalCode")]
+    postal_code: Option<String>,
+    #[serde(default, rename = "streetAddress")]
+    street_address: Option<String>,
+    #[serde(default, rename = "addressLocality")]
+    address_locality: Option<String>,
+    #[serde(default, rename = "addressRegion")]
+    address_region: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -205,7 +227,7 @@ impl BraveSearchRouter {
         }
 
         // With the gzip feature enabled, reqwest will automatically handle decompression
-        let data: BraveWeb = response.json().await?;
+        let data: BraveSearchResponse = response.json().await?;
         let results = data
             .web
             .unwrap_or_default()
@@ -226,6 +248,7 @@ impl BraveSearchRouter {
     async fn perform_local_search(&self, query: &str, count: usize) -> Result<String> {
         self.rate_limiter.check_rate_limit().await?;
 
+        // Use appropriate Local Search API endpoint and params
         let url = reqwest::Url::parse_with_params(
             "https://api.search.brave.com/res/v1/web/search",
             &[
@@ -253,27 +276,82 @@ impl BraveSearchRouter {
                 response.text().await?
             ));
         }
-        let a = response.text().await;
-        println!("{:?}", a);
-        unimplemented!()
-        //let web_data: BraveWeb = response.json().await?;
-        //let location_ids: Vec<String> = web_data
-        //    .locations
-        //    .unwrap_or_default()
-        //    .results
-        //    .into_iter()
-        //    .map(|loc| loc.id)
-        //    .collect();
 
-        //if location_ids.is_empty() {
-        //    // Fall back to web search if no local results
-        //    return self.perform_web_search(query, count, 0).await;
-        //}
+        // Parse the response using the new BraveSearchResponse structure
+        let search_data: BraveSearchResponse = response.json().await?;
 
-        //let pois_data = self.get_pois_data(&location_ids).await?;
-        //let desc_data = self.get_descriptions_data(&location_ids).await?;
+        // Extract location references from the search response
+        let location_refs = match &search_data.locations {
+            Some(locations) => &locations.results,
+            None => {
+                // Fall back to web search if no local results
+                return self.perform_web_search(query, count, 0).await;
+            }
+        };
 
-        //Ok(self.format_local_results(pois_data, desc_data))
+        if location_refs.is_empty() {
+            // Fall back to web search if no local results
+            return self.perform_web_search(query, count, 0).await;
+        }
+
+        // Extract only the IDs for the POI data lookup
+        let location_ids: Vec<String> = location_refs.iter().map(|loc| loc.id.clone()).collect();
+
+        // Format results directly from location references if possible
+        let mut results = Vec::new();
+
+        for loc_ref in location_refs {
+            let mut result_parts = Vec::new();
+
+            // Try to use data directly from the search results first
+            if let Some(title) = &loc_ref.title {
+                result_parts.push(format!("Name: {}", title));
+            }
+
+            // Format address if available
+            if let Some(address) = &loc_ref.postal_address {
+                let address_parts = vec![
+                    address.street_address.as_deref().unwrap_or(""),
+                    address.address_locality.as_deref().unwrap_or(""),
+                    address.address_region.as_deref().unwrap_or(""),
+                    address.postal_code.as_deref().unwrap_or(""),
+                    address.country.as_deref().unwrap_or(""),
+                ];
+
+                let address_str = address_parts
+                    .into_iter()
+                    .filter(|part| !part.is_empty())
+                    .collect::<Vec<_>>()
+                    .join(", ");
+
+                if !address_str.is_empty() {
+                    result_parts.push(format!("Address: {}", address_str));
+                }
+            }
+
+            // Add coordinates if available
+            if let Some(coords) = &loc_ref.coordinates {
+                if coords.len() >= 2 {
+                    result_parts.push(format!("Coordinates: {}, {}", coords[0], coords[1]));
+                }
+            }
+
+            // Add the ID for reference
+            result_parts.push(format!("ID: {}", loc_ref.id));
+
+            results.push(result_parts.join("\n"));
+        }
+
+        // If we have basic information, return it
+        if !results.is_empty() {
+            return Ok(results.join("\n---\n"));
+        }
+
+        // Fall back to the old method of getting detailed POI data
+        let pois_data = self.get_pois_data(&location_ids).await?;
+        let desc_data = self.get_descriptions_data(&location_ids).await?;
+
+        Ok(self.format_local_results(pois_data, desc_data))
     }
 
     async fn get_pois_data(&self, ids: &[String]) -> Result<BravePoiResponse> {
@@ -471,25 +549,36 @@ mod tests {
             eprintln!("BRAVE_API_KEY environment variable not set, skipping test");
             String::from("dummy_key")
         });
-        // Create a BraveSearchRouter with a test API key
+
+        // Only run this test if we have a real API key
+        if api_key == "dummy_key" {
+            // Skip the test
+            return;
+        }
+
+        // Create a BraveSearchRouter with the API key
         let router = BraveSearchRouter::new(api_key);
 
-        // Mock the client response if needed, or use a real API key for integration testing
-
-        // Perform a search
+        // Perform a web search
         let result = router
             .brave_local_search("Rust programming language".to_string(), None)
             .await;
 
         // Print the result for debugging
-        println!("Search result: {}", result);
+        println!("Web search result: {}", result);
 
+        // Basic verification that the result contains information about Rust
+        assert!(result.contains("Rust"));
+
+        // Test local search if time permits
+        let local_result = router
+            .brave_local_search("coffee shop".to_string(), Some(2))
+            .await;
+
+        println!("Local search result: {}", local_result);
         assert!(false);
-        // Add assertions based on expected behavior
-        // For example, if using a mock, assert the output matches expected mock response
-        // If using real API, assert that the response contains expected elements
 
-        // Example assertion (will need adjustment based on actual implementation)
-        // assert!(result.contains("Rust programming language"));
+        // Basic verification that we got a result (either locations or fallback)
+        assert!(!local_result.is_empty());
     }
 }
