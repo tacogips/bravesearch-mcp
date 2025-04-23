@@ -63,7 +63,7 @@ async fn run_stdio_server(debug: bool) -> Result<()> {
     tracing::info!("Starting MCP documentation server in STDIN/STDOUT mode");
 
     // Run the server using the new rust-sdk implementation
-    cratedocs_mcp::transport::stdio::run_stdio_server()
+    bravesearch_mcp::transport::stdio::run_stdio_server()
         .await
         .map_err(|e| anyhow::anyhow!("Error running STDIO server: {}", e))
 }
@@ -90,7 +90,7 @@ async fn run_http_server(address: String, debug: bool) -> Result<()> {
     );
 
     // Create app and run server using the new rust-sdk implementation
-    let app = cratedocs_mcp::transport::sse_server::SseServerApp::new(addr);
+    let app = bravesearch_mcp::transport::sse_server::SseServerApp::new(addr);
     app.serve().await?;
 
     Ok(())
