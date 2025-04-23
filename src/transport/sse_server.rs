@@ -1,27 +1,29 @@
 use crate::tools::bravesearch::CargoDocRouter;
 use anyhow::Result;
-use rmcp::transport::sse_server::SseServer;
+use rmcp::{Service, transport::sse_server::SseServer};
 use std::net::SocketAddr;
+use tokio::task::JoinHandle;
 
-pub struct SseServerApp {
-    bind_addr: SocketAddr,
-}
+pub async fn serve<S>(service: S, port: u16) -> Result<JoinHandle<Result<()>>>
+where
+    S: Service + Clone + Send + Sync + 'static,
+{
+    let addr = SocketAddr::from(([0, 0, 0, 0], port));
+    let sse_server = SseServer::serve(addr).await?;
+    let cancellation_token = sse_server.with_service(move || service.clone());
 
-impl SseServerApp {
-    pub fn new(bind_addr: SocketAddr) -> Self {
-        Self { bind_addr }
-    }
-
-    pub async fn serve(self) -> Result<()> {
-        let sse_server = SseServer::serve(self.bind_addr).await?;
-        let cancellation_token = sse_server.with_service(CargoDocRouter::new);
-
+    // Spawn a task that waits for Ctrl+C and then cancels the server
+    let handle = tokio::spawn(async move {
         // Wait for Ctrl+C signal to gracefully shutdown
-        tokio::signal::ctrl_c().await?;
-
+        if let Err(e) = tokio::signal::ctrl_c().await {
+            eprintln!("Failed to listen for ctrl+c: {}", e);
+        }
+        
         // Cancel the server
         cancellation_token.cancel();
-
+        
         Ok(())
-    }
+    });
+
+    Ok(handle)
 }
