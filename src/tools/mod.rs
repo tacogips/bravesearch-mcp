@@ -1,4 +1,4 @@
-pub mod cargo_docs;
+pub mod bravesearch;
 
-pub use cargo_docs::CargoDocRouter;
-pub use cargo_docs::DocCache;
+pub use bravesearch::CargoDocRouter;
+pub use bravesearch::DocCache;
