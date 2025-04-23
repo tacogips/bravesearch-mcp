@@ -1,10 +1,9 @@
-use std::env;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use anyhow::{anyhow, Result};
 use reqwest::Client;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use tokio::sync::Mutex;
 
 use rmcp::{model::*, schemars, tool, ServerHandler};
@@ -19,11 +18,20 @@ struct RateLimiter {
     request_count: Arc<Mutex<RequestCount>>,
 }
 
-#[derive(Default)]
 struct RequestCount {
     second: usize,
     month: usize,
     last_reset: Instant,
+}
+
+impl Default for RequestCount {
+    fn default() -> Self {
+        Self {
+            second: 0,
+            month: 0,
+            last_reset: Instant::now(),
+        }
+    }
 }
 
 impl RateLimiter {
@@ -154,22 +162,13 @@ pub struct BraveSearchRouter {
 }
 
 impl BraveSearchRouter {
-    /// Create a new BraveSearchRouter with an API key provided directly
-    pub fn with_api_key(api_key: String) -> Self {
+    /// Create a new BraveSearchRouter with the required API key
+    pub fn new(api_key: String) -> Self {
         Self {
             client: Client::new(),
             rate_limiter: RateLimiter::new(),
             api_key,
         }
-    }
-
-    /// Create a new BraveSearchRouter from the BRAVE_API_KEY environment variable
-    pub fn new() -> Self {
-        // Get API key from environment
-        let api_key = env::var("BRAVE_API_KEY")
-            .expect("BRAVE_API_KEY environment variable is required");
-        
-        Self::with_api_key(api_key)
     }
 
     async fn perform_web_search(&self, query: &str, count: usize, offset: usize) -> Result<String> {
@@ -401,11 +400,14 @@ impl BraveSearchRouter {
         #[tool(param)]
         #[schemars(description = "Pagination offset (max 9, default 0)")]
         offset: Option<usize>,
-    ) -> Result<String> {
+    ) -> String {
         let count = count.unwrap_or(10).min(20);
         let offset = offset.unwrap_or(0).min(9);
 
-        self.perform_web_search(&query, count, offset).await
+        match self.perform_web_search(&query, count, offset).await {
+            Ok(result) => result,
+            Err(e) => format!("Error: {}", e),
+        }
     }
 
     #[tool(description = "Searches for local businesses and places using Brave's Local Search API.")]
@@ -418,10 +420,13 @@ impl BraveSearchRouter {
         #[tool(param)]
         #[schemars(description = "Number of results (1-20, default 5)")]
         count: Option<usize>,
-    ) -> Result<String> {
+    ) -> String {
         let count = count.unwrap_or(5).min(20);
 
-        self.perform_local_search(&query, count).await
+        match self.perform_local_search(&query, count).await {
+            Ok(result) => result,
+            Err(e) => format!("Error: {}", e),
+        }
     }
 }
 

@@ -1,11 +1,11 @@
 use anyhow::Result;
-use rmcp::{Service, transport::sse_server::SseServer};
+use rmcp::{Service, transport::sse_server::SseServer, ServerHandler, RoleServer};
 use std::net::SocketAddr;
 use tokio::task::JoinHandle;
 
 pub async fn serve<S>(service: S, port: u16) -> Result<JoinHandle<Result<()>>>
 where
-    S: Service + Clone + Send + Sync + 'static,
+    S: Service<RoleServer> + ServerHandler + Clone + Send + Sync + 'static,
 {
     let addr = SocketAddr::from(([0, 0, 0, 0], port));
     let sse_server = SseServer::serve(addr).await?;

@@ -71,7 +71,7 @@ USAGE:
     bravesearch-mcp [OPTIONS] <SUBCOMMAND>
 
 OPTIONS:
-    -a, --api-key <API_KEY>    Optional Brave API key, overrides BRAVE_API_KEY environment variable
+    -a, --api-key <API_KEY>    Brave API key, required if BRAVE_API_KEY environment variable is not set
     -h, --help                 Print help information
 
 SUBCOMMANDS:

@@ -41,7 +41,7 @@ tracing-appender = "0.2"
 anyhow = "1.0"
 futures = "0.3"
 rand = "0.8"
-clap = { version = "4.4", features = ["derive"] }
+clap = { version = "4.5", features = ["derive", "env"] }
 html2md = "0.2.14"
 temp-dir = { git = "https://gitlab.com/leonhard-llc/ops.git", branch = "main" }
 
