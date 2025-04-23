@@ -46,6 +46,22 @@ Implementation uses a simple in-memory counter with Mutex for thread safety.
 
 ## Recent Changes
 
+### 2025-04-23: Updated CLI Interface and Documentation
+
+- Modified the CLI interface to use `http` instead of `sse` for the HTTP server command
+- Added debug logging option with `--debug` flag for both stdio and http modes
+- Updated the HTTP server to use `--address` parameter instead of `--port`
+- Made API key handling more robust and user-friendly
+- Updated documentation (README.md and spec.md) to reflect all changes
+- Added comprehensive documentation for News Search API in the README
+- Improved example client documentation to include News Search API usage
+
+These changes improve the user experience by:
+1. Making the CLI interface more consistent and intuitive
+2. Providing clear documentation for all available options
+3. Enabling easier debugging with the dedicated debug flag
+4. Standardizing the interface with other MCP implementations
+
 ### 2025-04-23: Added News Search API and Country/Language Support
 
 - Added News Search API integration with the Brave Search API

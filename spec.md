@@ -99,8 +99,11 @@ Example:
 ## Transport Options
 
 The server supports two transport methods:
-1. STDIN/STDOUT: For direct pipe communication
-2. HTTP/SSE: For web-based clients with Server-Sent Events
+1. STDIN/STDOUT: For direct pipe communication with CLI flags
+   - `--debug`: Enables debug logging
+2. HTTP: For web-based clients with Server-Sent Events (SSE)
+   - `--address`: Custom address and port (default: 0.0.0.0:3000)
+   - `--debug`: Enables debug logging
 
 ## Reference Implementation
 
