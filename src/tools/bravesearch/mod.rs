@@ -3,7 +3,9 @@ use std::time::{Duration, Instant};
 
 use anyhow::{anyhow, Result};
 use reqwest::Client;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+use std::fmt;
+use std::str::FromStr;
 use tokio::sync::Mutex;
 
 use rmcp::{model::*, schemars, tool, ServerHandler};
@@ -81,6 +83,8 @@ struct BraveSearchResponse {
     web: Option<BraveWebResults>,
     #[serde(default)]
     locations: Option<BraveLocationsResults>,
+    #[serde(default)]
+    news: Option<BraveNewsResults>,
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -93,6 +97,49 @@ struct BraveWebResults {
 struct BraveLocationsResults {
     #[serde(default)]
     results: Vec<BraveLocationRef>,
+}
+
+#[derive(Debug, Deserialize, Default)]
+struct BraveNewsResults {
+    #[serde(default)]
+    results: Vec<BraveNewsResult>,
+}
+
+#[derive(Debug, Deserialize)]
+struct BraveNewsResult {
+    title: String,
+    description: String,
+    url: String,
+    #[serde(default)]
+    age: Option<String>,
+    #[serde(default)]
+    breaking: Option<bool>,
+    #[serde(rename = "page_age", default)]
+    page_age: Option<String>,
+    #[serde(rename = "page_fetched", default)]
+    page_fetched: Option<String>,
+    #[serde(default)]
+    thumbnail: Option<BraveNewsThumbnail>,
+    #[serde(rename = "meta_url", default)]
+    meta_url: Option<BraveNewsMetaUrl>,
+}
+
+#[derive(Debug, Deserialize)]
+struct BraveNewsThumbnail {
+    #[serde(default)]
+    src: Option<String>,
+    #[serde(default)]
+    original: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct BraveNewsMetaUrl {
+    #[serde(default)]
+    scheme: Option<String>,
+    #[serde(default)]
+    hostname: Option<String>,
+    #[serde(default)]
+    favicon: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -194,6 +241,94 @@ impl BraveSearchRouter {
             rate_limiter: RateLimiter::new(),
             api_key,
         }
+    }
+
+    async fn perform_news_search(&self, query: &str, count: usize, offset: usize, freshness: Option<&str>) -> Result<String> {
+        self.rate_limiter.check_rate_limit().await?;
+
+        // Build URL with query parameters
+        let mut params = vec![
+            ("q", query.to_string()),
+            ("count", count.to_string()),
+            ("offset", offset.to_string()),
+            ("country", "us".to_string()),
+            ("search_lang", "en".to_string()),
+            ("spellcheck", "1".to_string()),
+        ];
+
+        // Add optional parameters
+        if let Some(freshness_val) = freshness {
+            params.push(("freshness", freshness_val.to_string()));
+        }
+
+        let url = reqwest::Url::parse_with_params(
+            "https://api.search.brave.com/res/v1/news/search",
+            &params,
+        )?;
+
+        let response = self
+            .client
+            .get(url)
+            .header("Accept", "application/json")
+            .header("Accept-Encoding", "gzip")
+            .header("X-Subscription-Token", &self.api_key)
+            .send()
+            .await?;
+
+        if !response.status().is_success() {
+            return Err(anyhow!(
+                "Brave API error: {} {}\n{}",
+                response.status().as_u16(),
+                response.status().canonical_reason().unwrap_or(""),
+                response.text().await?
+            ));
+        }
+
+        // With the gzip feature enabled, reqwest will automatically handle decompression
+        let data: BraveSearchResponse = response.json().await?;
+        
+        let news_results = match data.news {
+            Some(news) => news.results,
+            None => return Ok("No news results found".to_string()),
+        };
+        
+        if news_results.is_empty() {
+            return Ok("No news results found".to_string());
+        }
+        
+        let results = news_results
+            .into_iter()
+            .map(|result| {
+                let breaking = if result.breaking.unwrap_or(false) {
+                    "[BREAKING] "
+                } else {
+                    ""
+                };
+                
+                let age = result.age.unwrap_or_else(|| "Unknown".to_string());
+                
+                let thumbnail = match result.thumbnail {
+                    Some(thumb) => match thumb.src {
+                        Some(src) => format!("\nThumbnail: {}", src),
+                        None => "".to_string(),
+                    },
+                    None => "".to_string(),
+                };
+                
+                format!(
+                    "{}Title: {}\nDescription: {}\nURL: {}\nAge: {}{}", 
+                    breaking,
+                    result.title, 
+                    result.description, 
+                    result.url,
+                    age,
+                    thumbnail
+                )
+            })
+            .collect::<Vec<_>>()
+            .join("\n\n");
+
+        Ok(results)
     }
 
     async fn perform_web_search(&self, query: &str, count: usize, offset: usize) -> Result<String> {
@@ -479,7 +614,7 @@ impl BraveSearchRouter {
 #[tool(tool_box)]
 impl BraveSearchRouter {
     #[tool(
-        description = "Performs a web search using the Brave Search API, ideal for general queries, news, articles, and online content."
+        description = "Performs a web search using the Brave Search API, ideal for general queries, articles, and online content."
     )]
     async fn brave_web_search(
         &self,
@@ -499,6 +634,37 @@ impl BraveSearchRouter {
         let offset = offset.unwrap_or(0).min(9);
 
         match self.perform_web_search(&query, count, offset).await {
+            Ok(result) => result,
+            Err(e) => format!("Error: {}", e),
+        }
+    }
+    
+    #[tool(
+        description = "Searches for news articles using the Brave News Search API, ideal for current events, breaking news, and time-sensitive topics."
+    )]
+    async fn brave_news_search(
+        &self,
+        #[tool(param)]
+        #[schemars(description = "News search query (max 400 chars, 50 words)")]
+        query: String,
+
+        #[tool(param)]
+        #[schemars(description = "Number of results (1-50, default 20)")]
+        count: Option<usize>,
+
+        #[tool(param)]
+        #[schemars(description = "Pagination offset (max 9, default 0)")]
+        offset: Option<usize>,
+        
+        #[tool(param)]
+        #[schemars(description = "Timeframe filter (h for hour, d for day, w for week, m for month, y for year)")]
+        freshness: Option<String>,
+    ) -> String {
+        let count = count.unwrap_or(20).min(50);
+        let offset = offset.unwrap_or(0).min(9);
+        let freshness_param = freshness.as_deref();
+
+        match self.perform_news_search(&query, count, offset, freshness_param).await {
             Ok(result) => result,
             Err(e) => format!("Error: {}", e),
         }
@@ -533,7 +699,7 @@ impl ServerHandler for BraveSearchRouter {
             protocol_version: ProtocolVersion::V_2024_11_05,
             capabilities: ServerCapabilities::builder().enable_tools().build(),
             server_info: Implementation::from_build_env(),
-            instructions: Some("Brave Search MCP Server for web and local search.".to_string()),
+            instructions: Some("Brave Search MCP Server for web, news, and local search.".to_string()),
         }
     }
 }
@@ -543,7 +709,7 @@ mod tests {
     use super::*;
 
     #[tokio::test]
-    async fn test_brave_web_search() {
+    async fn test_brave_search_apis() {
         // Skip the test if API key is not set in environment
         let api_key = std::env::var("BRAVE_API_KEY").unwrap_or_else(|_| {
             eprintln!("BRAVE_API_KEY environment variable not set, skipping test");
@@ -559,26 +725,30 @@ mod tests {
         // Create a BraveSearchRouter with the API key
         let router = BraveSearchRouter::new(api_key);
 
-        // Perform a web search
-        let result = router
-            .brave_local_search("Rust programming language".to_string(), None)
+        // Test 1: Web Search
+        let web_result = router
+            .brave_web_search("Rust programming language".to_string(), Some(3), None)
             .await;
+            
+        println!("Web search result: {}", web_result);
+        assert!(!web_result.is_empty());
+        assert!(web_result.contains("Rust"));
 
-        // Print the result for debugging
-        println!("Web search result: {}", result);
+        // Test 2: News Search
+        let news_result = router
+            .brave_news_search("technology".to_string(), Some(3), None, Some("w".to_string()))
+            .await;
+            
+        println!("News search result: {}", news_result);
+        assert!(!news_result.is_empty());
+        assert!(news_result != "No news results found");
 
-        // Basic verification that the result contains information about Rust
-        assert!(result.contains("Rust"));
-
-        // Test local search if time permits
+        // Test 3: Local Search
         let local_result = router
             .brave_local_search("coffee shop".to_string(), Some(2))
             .await;
-
+            
         println!("Local search result: {}", local_result);
-        assert!(false);
-
-        // Basic verification that we got a result (either locations or fallback)
         assert!(!local_result.is_empty());
     }
 }
