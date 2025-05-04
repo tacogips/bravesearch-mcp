@@ -46,6 +46,25 @@ Implementation uses a simple in-memory counter with Mutex for thread safety.
 
 ## Recent Changes
 
+### 2025-05-05: Improved Tool Descriptions and Usage Examples for Better AI Integration
+
+- Enhanced tool descriptions in the Brave Search MCP to provide more comprehensive information for AI agents
+- Expanded parameter descriptions to explain expected input formats, valid values, and usage guidance
+- Added detailed tool documentation explaining what each search API provides and when to use it
+- Updated the server instructions message to provide clearer guidance on tool selection and capabilities
+- Improved readability and informativeness of parameter documentation for web, news, and local search tools
+- Added concrete code examples for each tool with comments explaining parameter usage
+- Implemented formatted code blocks in instructions to make usage patterns clearer
+
+These enhancements improve AI agent integration by:
+1. Providing clearer context about what each tool does and when to use it
+2. Helping AI agents understand parameter constraints and optimal usage patterns
+3. Making parameter descriptions more informative with examples and guidance
+4. Ensuring consistent documentation style across all tools
+5. Providing richer metadata to help AI agents select the most appropriate tool
+6. Including concrete examples demonstrating proper tool invocation syntax
+7. Adding comments to explain parameter defaults, limits, and best practices
+
 ### 2025-04-23: Updated CLI Interface and Documentation
 
 - Modified the CLI interface to use `http` instead of `sse` for the HTTP server command

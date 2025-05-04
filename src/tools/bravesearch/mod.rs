@@ -803,20 +803,20 @@ impl BraveSearchRouter {
 #[tool(tool_box)]
 impl BraveSearchRouter {
     #[tool(
-        description = "Performs a web search using the Brave Search API, ideal for general queries, articles, and online content."
+        description = "Performs a web search using the Brave Search API, ideal for general queries, articles, and online content. This tool provides access to Brave's comprehensive web search index to find relevant websites, articles, and information across the internet. Results include title, description, and URL for each match to help answer factual questions and provide high-quality reference information."
     )]
     async fn brave_web_search(
         &self,
         #[tool(param)]
-        #[schemars(description = "Search query (max 400 chars, 50 words)")]
+        #[schemars(description = "Search query to find relevant web results. Limited to maximum 400 characters or 50 words. Use specific, concise queries for best results.")]
         query: String,
 
         #[tool(param)]
-        #[schemars(description = "Number of results (1-20, default 10)")]
+        #[schemars(description = "Number of results to return, between 1-20 (default 10). Higher values provide more comprehensive results but may include less relevant items.")]
         count: Option<usize>,
 
         #[tool(param)]
-        #[schemars(description = "Pagination offset (max 9, default 0)")]
+        #[schemars(description = "Pagination offset for viewing additional results, maximum value 9 (default 0). Use incremental values to see more results beyond the initial set.")]
         offset: Option<usize>,
     ) -> String {
         let count = count.unwrap_or(10).min(20);
@@ -829,32 +829,32 @@ impl BraveSearchRouter {
     }
     
     #[tool(
-        description = "Searches for news articles using the Brave News Search API, ideal for current events, breaking news, and time-sensitive topics."
+        description = "Searches for news articles using the Brave News Search API, ideal for current events, breaking news, and time-sensitive topics. This tool retrieves the latest news articles from a wide range of global news sources, providing timely information on current events, breaking news, and trending topics. Results include titles, descriptions, URLs, publication age, and often thumbnail images to provide comprehensive news coverage with real-time updates."
     )]
     async fn brave_news_search(
         &self,
         #[tool(param)]
-        #[schemars(description = "News search query (max 400 chars, 50 words)")]
+        #[schemars(description = "News search query specifying the news topic or keywords to search for. Limited to maximum 400 characters or 50 words. Use clear, specific terms for more targeted news results.")]
         query: String,
 
         #[tool(param)]
-        #[schemars(description = "Number of results (1-50, default 20)")]
+        #[schemars(description = "Number of news articles to return, between 1-50 (default 20). Higher values provide more comprehensive coverage of a news topic.")]
         count: Option<usize>,
 
         #[tool(param)]
-        #[schemars(description = "Pagination offset (max 9, default 0)")]
+        #[schemars(description = "Pagination offset for viewing additional news results, maximum value 9 (default 0). Use with subsequent requests to see more news beyond the initial set.")]
         offset: Option<usize>,
         
         #[tool(param)]
-        #[schemars(description = "Country code (ALL, AR, AU, AT, BE, BR, CA, CL, DK, FI, FR, DE, HK, IN, ID, IT, JP, KR, MY, MX, NL, NZ, NO, CN, PL, PT, PH, RU, SA, ZA, ES, SE, CH, TW, TR, GB, US; default US)")]
+        #[schemars(description = "Country code to filter news by geographic region. Options: ALL (worldwide), AR, AU, AT, BE, BR, CA, CL, DK, FI, FR, DE, HK, IN, ID, IT, JP, KR, MY, MX, NL, NZ, NO, CN, PL, PT, PH, RU, SA, ZA, ES, SE, CH, TW, TR, GB, US (default US). Use to get region-specific news coverage.")]
         country: Option<String>,
         
         #[tool(param)]
-        #[schemars(description = "Search language (ar, eu, bn, bg, ca, zh-hans, zh-hant, hr, cs, da, nl, en, en-gb, et, fi, fr, gl, de, gu, he, hi, hu, is, it, ja, kn, ko, lv, lt, ms, ml, mr, nb, pl, pt, pt-br, pa, ro, ru, sr, sk, sl, es, sv, ta, te, th, tr, uk, vi; default en)")]
+        #[schemars(description = "Search language for news articles. Options: ar, eu, bn, bg, ca, zh-hans, zh-hant, hr, cs, da, nl, en, en-gb, et, fi, fr, gl, de, gu, he, hi, hu, is, it, ja, kn, ko, lv, lt, ms, ml, mr, nb, pl, pt, pt-br, pa, ro, ru, sr, sk, sl, es, sv, ta, te, th, tr, uk, vi (default en). Determines the language of retrieved news articles.")]
         search_lang: Option<String>,
         
         #[tool(param)]
-        #[schemars(description = "Timeframe filter (h for hour, d for day, w for week, m for month, y for year)")]
+        #[schemars(description = "Timeframe filter to specify how recent the news should be. Use h (hour), d (day), w (week), m (month), or y (year) to control recency. Omit for all time periods. Most useful for filtering out older news when researching time-sensitive topics.")]
         freshness: Option<String>,
     ) -> String {
         let count = count.unwrap_or(20).min(50);
@@ -887,16 +887,16 @@ impl BraveSearchRouter {
     }
 
     #[tool(
-        description = "Searches for local businesses and places using Brave's Local Search API."
+        description = "Searches for local businesses and places using Brave's Local Search API. This specialized search tool finds physical locations, businesses, landmarks, and points of interest based on geographic queries. It provides detailed information about each location including names, addresses, phone numbers, ratings, hours of operation, and descriptions, making it ideal for finding local services, restaurants, attractions, and other location-based information."
     )]
     async fn brave_local_search(
         &self,
         #[tool(param)]
-        #[schemars(description = "Local search query (e.g. 'pizza near Central Park')")]
+        #[schemars(description = "Local search query specifying what and where to search. Format should include both the category/business type and location (e.g., 'pizza near Central Park', 'coffee shops in Seattle', 'gas stations near me'). More specific queries yield better results.")]
         query: String,
 
         #[tool(param)]
-        #[schemars(description = "Number of results (1-20, default 5)")]
+        #[schemars(description = "Number of location results to return, between 1-20 (default 5). Higher values provide more options but may include less relevant locations. For popular searches in dense areas, higher values are recommended.")]
         count: Option<usize>,
     ) -> String {
         let count = count.unwrap_or(5).min(20);
@@ -915,7 +915,40 @@ impl ServerHandler for BraveSearchRouter {
             protocol_version: ProtocolVersion::V_2024_11_05,
             capabilities: ServerCapabilities::builder().enable_tools().build(),
             server_info: Implementation::from_build_env(),
-            instructions: Some("Brave Search MCP Server for web, news, and local search.".to_string()),
+            instructions: Some(r#"Brave Search MCP Server providing access to Brave's web, news, and local search APIs.
+
+TOOL USAGE EXAMPLES:
+
+1. Web Search - For general information queries:
+   ```
+   brave_web_search(
+     query: "rust programming language benefits",
+     count: 5,  // Optional: Get 5 results (default: 10, max: 20)
+     offset: 0  // Optional: Start from first result (default: 0, max: 9)
+   )
+   ```
+
+2. News Search - For current events and breaking news:
+   ```
+   brave_news_search(
+     query: "artificial intelligence developments",
+     count: 10,            // Optional: Number of results (default: 20, max: 50)
+     offset: 0,            // Optional: Pagination offset (default: 0, max: 9)
+     country: "US",        // Optional: Country code (default: US)
+     search_lang: "en",    // Optional: Language code (default: en)
+     freshness: "d"        // Optional: Timeframe - d=day, w=week, m=month
+   )
+   ```
+
+3. Local Search - For businesses and physical locations:
+   ```
+   brave_local_search(
+     query: "pizza restaurants near Times Square",
+     count: 5  // Optional: Number of results (default: 5, max: 20)
+   )
+   ```
+
+All searches respect rate limits and provide formatted, readable results. Choose the appropriate tool based on the type of information needed."#.to_string()),
         }
     }
 }
