@@ -21,6 +21,15 @@ The main router class, `BraveSearchRouter`, is instantiated with the following p
 BraveSearchRouter::new(api_key: String)
 ```
 
+### Code Style and Structure
+
+- Uses idiomatic Rust 2024 practices:
+  - Enums use `#[derive(Default)]` with `#[default]` attributes on default variants
+  - Unused API response fields are marked with `#[allow(dead_code)]` to maintain deserialization compatibility
+  - Follows Rust naming conventions and formatting guidelines
+  - All code passes Clippy linting with zero warnings
+  - Uses structured error handling with `anyhow`
+
 ### Rate Limiting
 
 The implementation includes built-in rate limiting to adhere to Brave Search API restrictions:

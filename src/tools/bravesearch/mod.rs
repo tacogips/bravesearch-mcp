@@ -15,7 +15,7 @@ const RATE_LIMIT_PER_SECOND: usize = 1;
 const RATE_LIMIT_PER_MONTH: usize = 15000;
 
 // Country codes for Brave Search API
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum CountryCode {
     ALL,
@@ -54,13 +54,8 @@ pub enum CountryCode {
     TW,
     TR,
     GB,
+    #[default]
     US,
-}
-
-impl Default for CountryCode {
-    fn default() -> Self {
-        CountryCode::US
-    }
 }
 
 impl fmt::Display for CountryCode {
@@ -124,7 +119,7 @@ impl FromStr for CountryCode {
 }
 
 // Language codes for Brave Search API
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum LanguageCode {
     AR,
@@ -138,6 +133,7 @@ pub enum LanguageCode {
     CS,
     DA,
     NL,
+    #[default]
     EN,
     EnGb,
     ET,
@@ -177,12 +173,6 @@ pub enum LanguageCode {
     TR,
     UK,
     VI,
-}
-
-impl Default for LanguageCode {
-    fn default() -> Self {
-        LanguageCode::EN
-    }
 }
 
 impl fmt::Display for LanguageCode {
@@ -328,6 +318,7 @@ struct BraveWebResult {
 #[derive(Debug, Deserialize)]
 struct BraveSearchResponse {
     #[serde(rename = "type")]
+    #[allow(dead_code)]
     response_type: String,
     #[serde(default)]
     web: Option<BraveWebResults>,
@@ -354,6 +345,7 @@ struct BraveLocationsResults {
 #[derive(Debug, Deserialize, Default)]
 struct BraveNewsResults {
     #[serde(default)]
+    #[allow(dead_code)]
     results: Vec<BraveNewsResult>,
 }
 
@@ -367,12 +359,15 @@ struct BraveNewsResult {
     #[serde(default)]
     breaking: Option<bool>,
     #[serde(rename = "page_age", default)]
+    #[allow(dead_code)]
     page_age: Option<String>,
     #[serde(rename = "page_fetched", default)]
+    #[allow(dead_code)]
     page_fetched: Option<String>,
     #[serde(default)]
     thumbnail: Option<BraveNewsThumbnail>,
     #[serde(rename = "meta_url", default)]
+    #[allow(dead_code)]
     meta_url: Option<BraveNewsMetaUrl>,
 }
 
@@ -381,16 +376,20 @@ struct BraveNewsThumbnail {
     #[serde(default)]
     src: Option<String>,
     #[serde(default)]
+    #[allow(dead_code)]
     original: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
 struct BraveNewsMetaUrl {
     #[serde(default)]
+    #[allow(dead_code)]
     scheme: Option<String>,
     #[serde(default)]
+    #[allow(dead_code)]
     hostname: Option<String>,
     #[serde(default)]
+    #[allow(dead_code)]
     favicon: Option<String>,
 }
 
@@ -398,6 +397,7 @@ struct BraveNewsMetaUrl {
 struct BraveLocationRef {
     id: String,
     #[serde(rename = "type")]
+    #[allow(dead_code)]
     location_type: Option<String>,
     #[serde(default)]
     title: Option<String>,
@@ -419,6 +419,7 @@ struct BraveLocation {
     #[serde(default)]
     address: BraveAddress,
     #[serde(default)]
+    #[allow(dead_code)]
     coordinates: Option<BraveCoordinates>,
     #[serde(default)]
     phone: Option<String>,
@@ -458,7 +459,9 @@ struct BravePostalAddress {
 
 #[derive(Debug, Deserialize)]
 struct BraveCoordinates {
+    #[allow(dead_code)]
     latitude: f64,
+    #[allow(dead_code)]
     longitude: f64,
 }
 
