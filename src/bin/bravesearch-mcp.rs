@@ -90,10 +90,7 @@ async fn run_http_server(api_key: String, address: String, debug: bool) -> Resul
     let addr: SocketAddr = address.parse()?;
 
     tracing::debug!("Brave Search MCP Server listening on {}", addr);
-    tracing::info!(
-        "Access the Brave Search MCP Server at http://{}/sse",
-        addr
-    );
+    tracing::info!("Access the Brave Search MCP Server at http://{}/sse", addr);
 
     // Create and run server
     let service = BraveSearchRouter::new(api_key);

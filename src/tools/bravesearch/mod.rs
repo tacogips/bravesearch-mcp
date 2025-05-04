@@ -18,9 +18,43 @@ const RATE_LIMIT_PER_MONTH: usize = 15000;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum CountryCode {
-    ALL, AR, AU, AT, BE, BR, CA, CL, DK, FI, FR, DE, HK, IN, ID, IT, JP, 
-    KR, MY, MX, NL, NZ, NO, CN, PL, PT, PH, RU, SA, ZA, ES, SE, CH, TW, 
-    TR, GB, US,
+    ALL,
+    AR,
+    AU,
+    AT,
+    BE,
+    BR,
+    CA,
+    CL,
+    DK,
+    FI,
+    FR,
+    DE,
+    HK,
+    IN,
+    ID,
+    IT,
+    JP,
+    KR,
+    MY,
+    MX,
+    NL,
+    NZ,
+    NO,
+    CN,
+    PL,
+    PT,
+    PH,
+    RU,
+    SA,
+    ZA,
+    ES,
+    SE,
+    CH,
+    TW,
+    TR,
+    GB,
+    US,
 }
 
 impl Default for CountryCode {
@@ -93,10 +127,56 @@ impl FromStr for CountryCode {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum LanguageCode {
-    AR, EU, BN, BG, CA, ZH_HANS, ZH_HANT, HR, CS, DA, NL, EN, EN_GB, 
-    ET, FI, FR, GL, DE, GU, HE, HI, HU, IS, IT, JA, KN, KO, LV, LT, 
-    MS, ML, MR, NB, PL, PT, PT_BR, PA, RO, RU, SR, SK, SL, ES, SV, TA, 
-    TE, TH, TR, UK, VI,
+    AR,
+    EU,
+    BN,
+    BG,
+    CA,
+    ZhHans,
+    ZhHant,
+    HR,
+    CS,
+    DA,
+    NL,
+    EN,
+    EnGb,
+    ET,
+    FI,
+    FR,
+    GL,
+    DE,
+    GU,
+    HE,
+    HI,
+    HU,
+    IS,
+    IT,
+    JA,
+    KN,
+    KO,
+    LV,
+    LT,
+    MS,
+    ML,
+    MR,
+    NB,
+    PL,
+    PT,
+    PtBr,
+    PA,
+    RO,
+    RU,
+    SR,
+    SK,
+    SL,
+    ES,
+    SV,
+    TA,
+    TE,
+    TH,
+    TR,
+    UK,
+    VI,
 }
 
 impl Default for LanguageCode {
@@ -108,10 +188,10 @@ impl Default for LanguageCode {
 impl fmt::Display for LanguageCode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            LanguageCode::ZH_HANS => write!(f, "zh-hans"),
-            LanguageCode::ZH_HANT => write!(f, "zh-hant"),
-            LanguageCode::EN_GB => write!(f, "en-gb"),
-            LanguageCode::PT_BR => write!(f, "pt-br"),
+            LanguageCode::ZhHans => write!(f, "zh-hans"),
+            LanguageCode::ZhHant => write!(f, "zh-hant"),
+            LanguageCode::EnGb => write!(f, "en-gb"),
+            LanguageCode::PtBr => write!(f, "pt-br"),
             _ => {
                 let s = format!("{:?}", self).to_lowercase();
                 write!(f, "{}", s)
@@ -130,17 +210,17 @@ impl FromStr for LanguageCode {
             "bn" => Ok(LanguageCode::BN),
             "bg" => Ok(LanguageCode::BG),
             "ca" => Ok(LanguageCode::CA),
-            "zh-hans" => Ok(LanguageCode::ZH_HANS),
-            "zh_hans" => Ok(LanguageCode::ZH_HANS),
-            "zh-hant" => Ok(LanguageCode::ZH_HANT),
-            "zh_hant" => Ok(LanguageCode::ZH_HANT),
+            "zh-hans" => Ok(LanguageCode::ZhHans),
+            "zh_hans" => Ok(LanguageCode::ZhHans),
+            "zh-hant" => Ok(LanguageCode::ZhHant),
+            "zh_hant" => Ok(LanguageCode::ZhHant),
             "hr" => Ok(LanguageCode::HR),
             "cs" => Ok(LanguageCode::CS),
             "da" => Ok(LanguageCode::DA),
             "nl" => Ok(LanguageCode::NL),
             "en" => Ok(LanguageCode::EN),
-            "en-gb" => Ok(LanguageCode::EN_GB),
-            "en_gb" => Ok(LanguageCode::EN_GB),
+            "en-gb" => Ok(LanguageCode::EnGb),
+            "en_gb" => Ok(LanguageCode::EnGb),
             "et" => Ok(LanguageCode::ET),
             "fi" => Ok(LanguageCode::FI),
             "fr" => Ok(LanguageCode::FR),
@@ -163,8 +243,8 @@ impl FromStr for LanguageCode {
             "nb" => Ok(LanguageCode::NB),
             "pl" => Ok(LanguageCode::PL),
             "pt" => Ok(LanguageCode::PT),
-            "pt-br" => Ok(LanguageCode::PT_BR),
-            "pt_br" => Ok(LanguageCode::PT_BR),
+            "pt-br" => Ok(LanguageCode::PtBr),
+            "pt_br" => Ok(LanguageCode::PtBr),
             "pa" => Ok(LanguageCode::PA),
             "ro" => Ok(LanguageCode::RO),
             "ru" => Ok(LanguageCode::RU),
@@ -416,20 +496,20 @@ impl BraveSearchRouter {
     }
 
     async fn perform_news_search(
-        &self, 
-        query: &str, 
-        count: usize, 
-        offset: usize, 
-        country: Option<CountryCode>, 
-        search_lang: Option<LanguageCode>, 
-        freshness: Option<&str>
+        &self,
+        query: &str,
+        count: usize,
+        offset: usize,
+        country: Option<CountryCode>,
+        search_lang: Option<LanguageCode>,
+        freshness: Option<&str>,
     ) -> Result<String> {
         self.rate_limiter.check_rate_limit().await?;
 
         // Build URL with query parameters
         let country_code = country.unwrap_or_default().to_string();
         let language_code = search_lang.unwrap_or_default().to_string();
-        
+
         let mut params = vec![
             ("q", query.to_string()),
             ("count", count.to_string()),
@@ -448,7 +528,7 @@ impl BraveSearchRouter {
             "https://api.search.brave.com/res/v1/news/search",
             &params,
         )?;
-        
+
         let response = self
             .client
             .get(url)
@@ -457,7 +537,7 @@ impl BraveSearchRouter {
             .header("X-Subscription-Token", &self.api_key)
             .send()
             .await?;
-            
+
         if !response.status().is_success() {
             let status_code = response.status().as_u16();
             let reason = response.status().canonical_reason().unwrap_or("");
@@ -472,7 +552,7 @@ impl BraveSearchRouter {
 
         // Get response body as text
         let response_text = response.text().await?;
-        
+
         // Parse the JSON
         let data = match serde_json::from_str::<BraveSearchResponse>(&response_text) {
             Ok(parsed) => parsed,
@@ -480,12 +560,13 @@ impl BraveSearchRouter {
                 return Ok(format!("Failed to parse API response: {}", e));
             }
         };
-        
+
         if data.results.is_empty() {
             return Ok("No news results found (empty results array)".to_string());
         }
-        
-        let results = data.results
+
+        let results = data
+            .results
             .iter() // Use iter() instead of into_iter() for shared references
             .map(|result| {
                 let breaking = if result.breaking.unwrap_or(false) {
@@ -493,9 +574,9 @@ impl BraveSearchRouter {
                 } else {
                     ""
                 };
-                
+
                 let age = result.age.as_deref().unwrap_or("Unknown");
-                
+
                 let thumbnail = match &result.thumbnail {
                     Some(thumb) => match &thumb.src {
                         Some(src) => format!("\nThumbnail: {}", src),
@@ -503,15 +584,10 @@ impl BraveSearchRouter {
                     },
                     None => "".to_string(),
                 };
-                
+
                 format!(
-                    "{}Title: {}\nDescription: {}\nURL: {}\nAge: {}{}", 
-                    breaking,
-                    result.title, 
-                    result.description, 
-                    result.url,
-                    age,
-                    thumbnail
+                    "{}Title: {}\nDescription: {}\nURL: {}\nAge: {}{}",
+                    breaking, result.title, result.description, result.url, age, thumbnail
                 )
             })
             .collect::<Vec<_>>()
@@ -808,15 +884,21 @@ impl BraveSearchRouter {
     async fn brave_web_search(
         &self,
         #[tool(param)]
-        #[schemars(description = "Search query to find relevant web results. Limited to maximum 400 characters or 50 words. Use specific, concise queries for best results.")]
+        #[schemars(
+            description = "Search query to find relevant web results. Limited to maximum 400 characters or 50 words. Use specific, concise queries for best results."
+        )]
         query: String,
 
         #[tool(param)]
-        #[schemars(description = "Number of results to return, between 1-20 (default 10). Higher values provide more comprehensive results but may include less relevant items.")]
+        #[schemars(
+            description = "Number of results to return, between 1-20 (default 10). Higher values provide more comprehensive results but may include less relevant items."
+        )]
         count: Option<usize>,
 
         #[tool(param)]
-        #[schemars(description = "Pagination offset for viewing additional results, maximum value 9 (default 0). Use incremental values to see more results beyond the initial set.")]
+        #[schemars(
+            description = "Pagination offset for viewing additional results, maximum value 9 (default 0). Use incremental values to see more results beyond the initial set."
+        )]
         offset: Option<usize>,
     ) -> String {
         let count = count.unwrap_or(10).min(20);
@@ -827,39 +909,51 @@ impl BraveSearchRouter {
             Err(e) => format!("Error: {}", e),
         }
     }
-    
+
     #[tool(
         description = "Searches for news articles using the Brave News Search API, ideal for current events, breaking news, and time-sensitive topics. This tool retrieves the latest news articles from a wide range of global news sources, providing timely information on current events, breaking news, and trending topics. Results include titles, descriptions, URLs, publication age, and often thumbnail images to provide comprehensive news coverage with real-time updates."
     )]
     async fn brave_news_search(
         &self,
         #[tool(param)]
-        #[schemars(description = "News search query specifying the news topic or keywords to search for. Limited to maximum 400 characters or 50 words. Use clear, specific terms for more targeted news results.")]
+        #[schemars(
+            description = "News search query specifying the news topic or keywords to search for. Limited to maximum 400 characters or 50 words. Use clear, specific terms for more targeted news results."
+        )]
         query: String,
 
         #[tool(param)]
-        #[schemars(description = "Number of news articles to return, between 1-50 (default 20). Higher values provide more comprehensive coverage of a news topic.")]
+        #[schemars(
+            description = "Number of news articles to return, between 1-50 (default 20). Higher values provide more comprehensive coverage of a news topic."
+        )]
         count: Option<usize>,
 
         #[tool(param)]
-        #[schemars(description = "Pagination offset for viewing additional news results, maximum value 9 (default 0). Use with subsequent requests to see more news beyond the initial set.")]
+        #[schemars(
+            description = "Pagination offset for viewing additional news results, maximum value 9 (default 0). Use with subsequent requests to see more news beyond the initial set."
+        )]
         offset: Option<usize>,
-        
+
         #[tool(param)]
-        #[schemars(description = "Country code to filter news by geographic region. Options: ALL (worldwide), AR, AU, AT, BE, BR, CA, CL, DK, FI, FR, DE, HK, IN, ID, IT, JP, KR, MY, MX, NL, NZ, NO, CN, PL, PT, PH, RU, SA, ZA, ES, SE, CH, TW, TR, GB, US (default US). Use to get region-specific news coverage.")]
+        #[schemars(
+            description = "Country code to filter news by geographic region. Options: ALL (worldwide), AR, AU, AT, BE, BR, CA, CL, DK, FI, FR, DE, HK, IN, ID, IT, JP, KR, MY, MX, NL, NZ, NO, CN, PL, PT, PH, RU, SA, ZA, ES, SE, CH, TW, TR, GB, US (default US). Use to get region-specific news coverage."
+        )]
         country: Option<String>,
-        
+
         #[tool(param)]
-        #[schemars(description = "Search language for news articles. Options: ar, eu, bn, bg, ca, zh-hans, zh-hant, hr, cs, da, nl, en, en-gb, et, fi, fr, gl, de, gu, he, hi, hu, is, it, ja, kn, ko, lv, lt, ms, ml, mr, nb, pl, pt, pt-br, pa, ro, ru, sr, sk, sl, es, sv, ta, te, th, tr, uk, vi (default en). Determines the language of retrieved news articles.")]
+        #[schemars(
+            description = "Search language for news articles. Options: ar, eu, bn, bg, ca, zh-hans, zh-hant, hr, cs, da, nl, en, en-gb, et, fi, fr, gl, de, gu, he, hi, hu, is, it, ja, kn, ko, lv, lt, ms, ml, mr, nb, pl, pt, pt-br, pa, ro, ru, sr, sk, sl, es, sv, ta, te, th, tr, uk, vi (default en). Determines the language of retrieved news articles."
+        )]
         search_lang: Option<String>,
-        
+
         #[tool(param)]
-        #[schemars(description = "Timeframe filter to specify how recent the news should be. Use h (hour), d (day), w (week), m (month), or y (year) to control recency. Omit for all time periods. Most useful for filtering out older news when researching time-sensitive topics.")]
+        #[schemars(
+            description = "Timeframe filter to specify how recent the news should be. Use h (hour), d (day), w (week), m (month), or y (year) to control recency. Omit for all time periods. Most useful for filtering out older news when researching time-sensitive topics."
+        )]
         freshness: Option<String>,
     ) -> String {
         let count = count.unwrap_or(20).min(50);
         let offset = offset.unwrap_or(0).min(9);
-        
+
         // Parse country code if provided
         let country_code = match country {
             Some(c) => match CountryCode::from_str(&c) {
@@ -868,7 +962,7 @@ impl BraveSearchRouter {
             },
             None => None,
         };
-        
+
         // Parse language code if provided
         let lang_code = match search_lang {
             Some(l) => match LanguageCode::from_str(&l) {
@@ -877,10 +971,20 @@ impl BraveSearchRouter {
             },
             None => None,
         };
-        
+
         let freshness_param = freshness.as_deref();
 
-        match self.perform_news_search(&query, count, offset, country_code, lang_code, freshness_param).await {
+        match self
+            .perform_news_search(
+                &query,
+                count,
+                offset,
+                country_code,
+                lang_code,
+                freshness_param,
+            )
+            .await
+        {
             Ok(result) => result,
             Err(e) => format!("Error: {}", e),
         }
@@ -892,11 +996,15 @@ impl BraveSearchRouter {
     async fn brave_local_search(
         &self,
         #[tool(param)]
-        #[schemars(description = "Local search query specifying what and where to search. Format should include both the category/business type and location (e.g., 'pizza near Central Park', 'coffee shops in Seattle', 'gas stations near me'). More specific queries yield better results.")]
+        #[schemars(
+            description = "Local search query specifying what and where to search. Format should include both the category/business type and location (e.g., 'pizza near Central Park', 'coffee shops in Seattle', 'gas stations near me'). More specific queries yield better results."
+        )]
         query: String,
 
         #[tool(param)]
-        #[schemars(description = "Number of location results to return, between 1-20 (default 5). Higher values provide more options but may include less relevant locations. For popular searches in dense areas, higher values are recommended.")]
+        #[schemars(
+            description = "Number of location results to return, between 1-20 (default 5). Higher values provide more options but may include less relevant locations. For popular searches in dense areas, higher values are recommended."
+        )]
         count: Option<usize>,
     ) -> String {
         let count = count.unwrap_or(5).min(20);
@@ -978,7 +1086,7 @@ mod tests {
         let web_result = router
             .brave_web_search("Rust programming language".to_string(), Some(3), None)
             .await;
-            
+
         println!("Web search result: {}", web_result);
         assert!(!web_result.is_empty());
         assert!(web_result.contains("Rust"));
@@ -986,15 +1094,15 @@ mod tests {
         // Test 2: News Search with country and language
         let news_result = router
             .brave_news_search(
-                "technology".to_string(), 
-                Some(3), 
-                None, 
-                Some("JP".to_string()), 
-                Some("en".to_string()), 
-                Some("w".to_string())
+                "technology".to_string(),
+                Some(3),
+                None,
+                Some("JP".to_string()),
+                Some("en".to_string()),
+                Some("w".to_string()),
             )
             .await;
-            
+
         println!("News search result (JP, en): {}", news_result);
         assert!(!news_result.is_empty());
         assert!(news_result != "No news results found");
@@ -1004,11 +1112,11 @@ mod tests {
         let local_result = router
             .brave_local_search("coffee shop".to_string(), Some(2))
             .await;
-            
+
         println!("Local search result: {}", local_result);
         assert!(!local_result.is_empty());
     }
-    
+
     #[tokio::test]
     async fn test_news_search_with_query() {
         // Skip the test if API key is not set in environment
@@ -1035,18 +1143,104 @@ mod tests {
                 None,
                 Some("US".to_string()),
                 Some("en".to_string()),
-                None
+                None,
             )
             .await;
-            
+
         println!("News search result: {}", news_result);
-        
+
         // Verify we got results
         assert!(!news_result.is_empty());
         assert!(news_result != "No news results found");
         assert!(!news_result.starts_with("Error parsing"));
-        
+
         // Print the API response details
         println!("\nNews search API response received successfully!");
+    }
+
+    // New unit tests
+    #[test]
+    fn test_country_code_from_str() {
+        // Test valid country codes
+        assert_eq!(CountryCode::from_str("US").unwrap(), CountryCode::US);
+        assert_eq!(CountryCode::from_str("us").unwrap(), CountryCode::US);
+        assert_eq!(CountryCode::from_str("JP").unwrap(), CountryCode::JP);
+        assert_eq!(CountryCode::from_str("all").unwrap(), CountryCode::ALL);
+
+        // Test invalid country code
+        let invalid = CountryCode::from_str("ZZ");
+        assert!(invalid.is_err());
+        assert_eq!(invalid.unwrap_err(), "Unknown country code: ZZ");
+    }
+
+    #[test]
+    fn test_language_code_from_str() {
+        // Test valid language codes
+        assert_eq!(LanguageCode::from_str("en").unwrap(), LanguageCode::EN);
+        assert_eq!(LanguageCode::from_str("EN").unwrap(), LanguageCode::EN);
+        assert_eq!(LanguageCode::from_str("en-gb").unwrap(), LanguageCode::EnGb);
+        assert_eq!(
+            LanguageCode::from_str("zh-hans").unwrap(),
+            LanguageCode::ZhHans
+        );
+
+        // Test invalid language code
+        let invalid = LanguageCode::from_str("xx");
+        assert!(invalid.is_err());
+        assert_eq!(invalid.unwrap_err(), "Unknown language code: xx");
+    }
+
+    #[test]
+    fn test_country_code_display() {
+        assert_eq!(CountryCode::US.to_string(), "us");
+        assert_eq!(CountryCode::ALL.to_string(), "all");
+        assert_eq!(CountryCode::JP.to_string(), "jp");
+    }
+
+    #[test]
+    fn test_language_code_display() {
+        assert_eq!(LanguageCode::EN.to_string(), "en");
+        assert_eq!(LanguageCode::EnGb.to_string(), "en-gb");
+        assert_eq!(LanguageCode::ZhHans.to_string(), "zh-hans");
+    }
+
+    #[tokio::test]
+    async fn test_rate_limiter() {
+        let limiter = RateLimiter::new();
+
+        // First request should succeed
+        assert!(limiter.check_rate_limit().await.is_ok());
+
+        // Simulate reaching per-second limit
+        {
+            let mut count = limiter.request_count.lock().await;
+            count.second = RATE_LIMIT_PER_SECOND;
+        }
+
+        // Next request should fail due to rate limit
+        assert!(limiter.check_rate_limit().await.is_err());
+
+        // Reset counter and test monthly limit
+        {
+            let mut count = limiter.request_count.lock().await;
+            count.second = 0;
+            count.month = RATE_LIMIT_PER_MONTH;
+        }
+
+        // Request should fail due to monthly limit
+        assert!(limiter.check_rate_limit().await.is_err());
+    }
+
+    #[test]
+    fn test_server_handler_info() {
+        let router = BraveSearchRouter::new("test_key".to_string());
+        let info = router.get_info();
+
+        assert_eq!(info.protocol_version, ProtocolVersion::V_2024_11_05);
+        assert!(info.instructions.is_some());
+        assert!(info
+            .instructions
+            .unwrap()
+            .contains("Brave Search MCP Server"));
     }
 }

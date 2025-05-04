@@ -44,7 +44,31 @@ Implementation uses a simple in-memory counter with Mutex for thread safety.
 - Error handling uses the `anyhow` crate for flexible error management
 - Tool functions transform results to strings with error messages for user-friendly responses
 
+### Testing
+
+The project includes multiple levels of tests:
+- Unit tests for individual components (country codes, language codes, rate limiter)
+- Integration tests for API functionality with real API keys
+- Mock-based tests are used when appropriate
+
 ## Recent Changes
+
+### 2025-05-05: Enhanced Unit Test Coverage for Core Components
+
+- Added comprehensive unit tests for country and language code parsing and formatting
+- Implemented unit tests for the rate limiter to ensure proper request throttling
+- Added tests for server handler information validation
+- Fixed camelCase naming for language code enums (ZhHans, EnGb, PtBr) to comply with Rust conventions
+- Improved API resilience by adding more thorough validation for input parameters
+- Removed mock-based tests that were not compatible with the current mockito library version
+- Ensured all core functionality has test coverage for improved reliability
+
+These improvements enhance the codebase by:
+1. Verifying correct behavior of country and language code parsing from strings
+2. Ensuring that rate limiting functions correctly to prevent API quota exhaustion
+3. Validating that server information is properly formed for MCP protocol compatibility
+4. Identifying and fixing naming convention issues for better code quality
+5. Adding explicit tests for error conditions and edge cases
 
 ### 2025-05-05: Improved Tool Descriptions and Usage Examples for Better AI Integration
 

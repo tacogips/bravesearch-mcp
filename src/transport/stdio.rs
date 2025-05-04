@@ -12,6 +12,6 @@ pub async fn run_stdio_server(api_key: String) -> Result<()> {
 
     // Wait for the server to complete
     server.waiting().await?;
-    
+
     Ok(())
 }

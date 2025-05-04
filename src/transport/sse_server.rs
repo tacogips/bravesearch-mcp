@@ -1,5 +1,5 @@
 use anyhow::Result;
-use rmcp::{Service, transport::sse_server::SseServer, ServerHandler, RoleServer};
+use rmcp::{transport::sse_server::SseServer, RoleServer, ServerHandler, Service};
 use std::net::SocketAddr;
 use tokio::task::JoinHandle;
 
@@ -17,11 +17,11 @@ where
         if let Err(e) = tokio::signal::ctrl_c().await {
             tracing::error!("Failed to listen for ctrl+c: {}", e);
         }
-        
+
         // Cancel the server
         tracing::info!("Shutting down server...");
         cancellation_token.cancel();
-        
+
         Ok(())
     });
 
