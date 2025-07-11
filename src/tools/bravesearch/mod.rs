@@ -884,7 +884,7 @@ impl BraveSearchRouter {
     #[tool(
         description = "Performs a web search using the Brave Search API, ideal for general queries, articles, and online content. This tool provides access to Brave's comprehensive web search index to find relevant websites, articles, and information across the internet. Results include title, description, and URL for each match to help answer factual questions and provide high-quality reference information."
     )]
-    async fn brave_web_search(
+    pub async fn brave_web_search(
         &self,
         #[tool(param)]
         #[schemars(
@@ -916,7 +916,7 @@ impl BraveSearchRouter {
     #[tool(
         description = "Searches for news articles using the Brave News Search API, ideal for current events, breaking news, and time-sensitive topics. This tool retrieves the latest news articles from a wide range of global news sources, providing timely information on current events, breaking news, and trending topics. Results include titles, descriptions, URLs, publication age, and often thumbnail images to provide comprehensive news coverage with real-time updates."
     )]
-    async fn brave_news_search(
+    pub async fn brave_news_search(
         &self,
         #[tool(param)]
         #[schemars(
@@ -996,7 +996,7 @@ impl BraveSearchRouter {
     #[tool(
         description = "Searches for local businesses and places using Brave's Local Search API. This specialized search tool finds physical locations, businesses, landmarks, and points of interest based on geographic queries. It provides detailed information about each location including names, addresses, phone numbers, ratings, hours of operation, and descriptions, making it ideal for finding local services, restaurants, attractions, and other location-based information."
     )]
-    async fn brave_local_search(
+    pub async fn brave_local_search(
         &self,
         #[tool(param)]
         #[schemars(

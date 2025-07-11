@@ -124,6 +124,54 @@ The example client demonstrates:
 3. Making web search, news search, and local search requests
 4. Handling and parsing of various response formats
 
+## Library Usage
+
+This crate can also be used as a library in other Rust projects. The `BraveSearchRouter` and its search functions are available for direct use:
+
+```rust
+use bravesearch_mcp::BraveSearchRouter;
+
+#[tokio::main]
+async fn main() {
+    let api_key = "your_api_key_here".to_string();
+    let router = BraveSearchRouter::new(api_key);
+    
+    // Web search
+    let web_result = router.brave_web_search(
+        "rust programming language".to_string(),
+        Some(5),  // count
+        None      // offset
+    ).await;
+    println!("Web search result: {}", web_result);
+    
+    // News search
+    let news_result = router.brave_news_search(
+        "technology news".to_string(),
+        Some(3),                    // count
+        None,                       // offset
+        Some("US".to_string()),     // country
+        Some("en".to_string()),     // search_lang
+        Some("d".to_string())       // freshness (daily)
+    ).await;
+    println!("News search result: {}", news_result);
+    
+    // Local search
+    let local_result = router.brave_local_search(
+        "coffee shops near me".to_string(),
+        Some(3)   // count
+    ).await;
+    println!("Local search result: {}", local_result);
+}
+```
+
+Add this to your `Cargo.toml`:
+
+```toml
+[dependencies]
+bravesearch-mcp = { git = "https://github.com/tacogips/bravesearch-mcp.git" }
+tokio = { version = "1", features = ["full"] }
+```
+
 ## Available Tools
 
 The server provides the following tools:
